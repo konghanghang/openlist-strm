@@ -49,8 +49,11 @@ config.yml
 
 # Data directories
 data/
-strm/
 logs/
+
+# Generated STRM files (not source code)
+# Allow internal/strm/ (source code)
+/strm/
 
 # Temporary files
 tmp/
