@@ -1,0 +1,76 @@
+# OpenList-STRM Configuration Example
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# Alist configuration
+alist:
+  url: "http://localhost:5244"
+  token: "your-alist-token-here"
+  sign_enabled: false
+  timeout: 30  # seconds
+
+# STRM configuration
+strm:
+  output_dir: "/mnt/strm"
+  concurrent: 10  # Number of concurrent file processing
+  extensions:  # Video file extensions to process
+    - mp4
+    - mkv
+    - avi
+    - mov
+    - flv
+    - wmv
+    - ts
+    - m4v
+  download_metadata: false  # Download .nfo, .jpg files (not implemented in v1.0)
+
+# Path mappings
+mappings:
+  - name: "Movies"
+    source: "/media/movies"  # Path in Alist
+    target: "/mnt/strm/movies"  # Local STRM path
+    mode: "incremental"  # incremental or full
+    enabled: true
+
+  - name: "TV Shows"
+    source: "/media/tv"
+    target: "/mnt/strm/tv"
+    mode: "incremental"
+    enabled: true
+
+  - name: "Anime"
+    source: "/media/anime"
+    target: "/mnt/strm/anime"
+    mode: "incremental"
+    enabled: false  # Disabled mapping
+
+# Schedule configuration
+schedule:
+  enabled: true
+  cron: "0 2 * * *"  # Every day at 2:00 AM
+
+# API configuration
+api:
+  enabled: false  # API not implemented in v1.0
+  token: "your-api-token-here"
+  timeout: 300  # seconds
+
+# Web UI configuration
+web:
+  enabled: false  # Web UI not implemented in v1.0
+  username: "admin"
+  password: "admin123"
+
+# Logging configuration
+log:
+  level: "info"  # debug, info, warn, error
+  file: "./logs/openlist-strm.log"  # Empty string to disable file logging
+  max_size: 100  # MB
+  max_backups: 3
+
+# Database configuration
+database:
+  path: "./data/openlist-strm.db"
