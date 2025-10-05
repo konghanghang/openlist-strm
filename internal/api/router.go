@@ -67,6 +67,9 @@ func (s *Server) setupRoutes() {
 		// Config routes
 		api.GET("/configs", s.handleGetConfigs)
 		api.GET("/status", s.handleGetStatus)
+
+		// Webhook routes
+		api.POST("/webhook", s.handleWebhook)
 	}
 }
 
