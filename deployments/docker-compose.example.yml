@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # OpenList-STRM Service
+  openlist-strm:
+    image: openlist-strm:latest
+    container_name: openlist-strm
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # Configuration (copy config.example.yaml to config.yaml and modify it)
+      - ./config.yaml:/app/configs/config.yaml:ro
+
+      # Data persistence
+      - ./data:/app/data
+
+      # Logs
+      - ./logs:/app/logs
+
+      # STRM output - Example 1: Local directory
+      - ./strm:/mnt/strm
+
+      # STRM output - Example 2: Mount your media server's library path
+      # - /your/media/library:/mnt/strm
+    environment:
+      # Timezone
+      - TZ=Asia/Shanghai
+
+      # Optional: Override config values via environment variables
+      # - SERVER_HOST=0.0.0.0
+      # - SERVER_PORT=8080
+      # - ALIST_URL=http://alist:5244
+      # - ALIST_TOKEN=your-alist-token
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    networks:
+      - app-network
+    # If you have Alist running in the same Docker network
+    # depends_on:
+    #   - alist
+
+  # Optional: Alist service (if you want to run Alist in Docker too)
+  # alist:
+  #   image: xhofe/alist:latest
+  #   container_name: alist
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5244:5244"
+  #   volumes:
+  #     - ./alist/data:/opt/alist/data
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - UMASK=022
+  #   networks:
+  #     - app-network
+
+networks:
+  app-network:
+    driver: bridge

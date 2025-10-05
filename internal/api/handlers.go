@@ -195,6 +195,76 @@ func (s *Server) handleGetStatus(c *gin.Context) {
 	})
 }
 
+// WebhookRequest represents a webhook request
+type WebhookRequest struct {
+	Event  string `json:"event"`  // Event type: file.upload, file.delete, etc.
+	Path   string `json:"path"`   // File or directory path
+	Action string `json:"action"` // Action: add, update, delete
+}
+
+// WebhookResponse represents a webhook response
+type WebhookResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	TaskID  string `json:"task_id,omitempty"`
+}
+
+// handleWebhook handles webhook notifications from external systems
+func (s *Server) handleWebhook(c *gin.Context) {
+	var req WebhookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, WebhookResponse{
+			Success: false,
+			Message: "invalid request body",
+		})
+		return
+	}
+
+	// Validate event and path
+	if req.Path == "" {
+		c.JSON(http.StatusBadRequest, WebhookResponse{
+			Success: false,
+			Message: "path is required",
+		})
+		return
+	}
+
+	// Find matching mapping configuration
+	var matchedMapping *string
+	for _, mapping := range s.cfg.Mappings {
+		if !mapping.Enabled {
+			continue
+		}
+		// Check if the webhook path matches the mapping source
+		if len(req.Path) >= len(mapping.Source) && req.Path[:len(mapping.Source)] == mapping.Source {
+			matchedMapping = &mapping.Name
+			break
+		}
+	}
+
+	if matchedMapping == nil {
+		c.JSON(http.StatusOK, WebhookResponse{
+			Success: true,
+			Message: "no matching mapping found, skipping",
+		})
+		return
+	}
+
+	// Trigger generation in background
+	ctx := context.Background()
+	taskID := uuid.New().String()
+
+	go func() {
+		s.scheduler.RunMappingByName(ctx, *matchedMapping)
+	}()
+
+	c.JSON(http.StatusOK, WebhookResponse{
+		Success: true,
+		Message: "webhook received, generation triggered",
+		TaskID:  taskID,
+	})
+}
+
 // toTaskResponse converts storage.Task to TaskResponse
 func toTaskResponse(task *storage.Task) TaskResponse {
 	return TaskResponse{

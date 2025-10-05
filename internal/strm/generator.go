@@ -11,14 +11,21 @@ import (
 	"github.com/konghang/openlist-strm/internal/alist"
 )
 
+// AlistClient is an interface for Alist operations
+type AlistClient interface {
+	Ping(ctx context.Context) error
+	ListFilesRecursive(ctx context.Context, dirPath string, extensions []string) ([]alist.FileItem, error)
+	GetFileURL(ctx context.Context, filePath string) (string, error)
+}
+
 // Generator generates STRM files
 type Generator struct {
-	alistClient *alist.Client
+	alistClient AlistClient
 	concurrent  int
 }
 
 // NewGenerator creates a new STRM generator
-func NewGenerator(alistClient *alist.Client, concurrent int) *Generator {
+func NewGenerator(alistClient AlistClient, concurrent int) *Generator {
 	return &Generator{
 		alistClient: alistClient,
 		concurrent:  concurrent,
@@ -85,13 +92,18 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 			defer func() { <-sem }() // Release semaphore
 
 			// Generate STRM file
-			if err := g.generateSTRMFile(ctx, f, opts); err != nil {
+			created, err := g.generateSTRMFile(ctx, f, opts)
+			if err != nil {
 				mu.Lock()
 				result.Errors = append(result.Errors, err)
 				mu.Unlock()
-			} else {
+			} else if created {
 				mu.Lock()
 				result.FilesCreated++
+				mu.Unlock()
+			} else {
+				mu.Lock()
+				result.FilesSkipped++
 				mu.Unlock()
 			}
 		}(file)
@@ -103,7 +115,8 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 }
 
 // generateSTRMFile generates a single STRM file
-func (g *Generator) generateSTRMFile(ctx context.Context, file alist.FileItem, opts GenerateOptions) error {
+// Returns (created, error) where created is true if a new file was created
+func (g *Generator) generateSTRMFile(ctx context.Context, file alist.FileItem, opts GenerateOptions) (bool, error) {
 	// Calculate relative path
 	relPath := strings.TrimPrefix(file.Name, opts.SourcePath)
 	relPath = strings.TrimPrefix(relPath, "/")
@@ -115,14 +128,14 @@ func (g *Generator) generateSTRMFile(ctx context.Context, file alist.FileItem, o
 	// Create parent directory
 	parentDir := filepath.Dir(strmPath)
 	if err := os.MkdirAll(parentDir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", parentDir, err)
+		return false, fmt.Errorf("failed to create directory %s: %w", parentDir, err)
 	}
 
 	// Check if STRM file already exists (for incremental mode)
 	if opts.Mode == "incremental" {
 		if _, err := os.Stat(strmPath); err == nil {
 			// File exists, skip
-			return nil
+			return false, nil
 		}
 	}
 
@@ -130,15 +143,15 @@ func (g *Generator) generateSTRMFile(ctx context.Context, file alist.FileItem, o
 	sourcePath := filepath.Join(opts.SourcePath, file.Name)
 	fileURL, err := g.alistClient.GetFileURL(ctx, sourcePath)
 	if err != nil {
-		return fmt.Errorf("failed to get URL for %s: %w", sourcePath, err)
+		return false, fmt.Errorf("failed to get URL for %s: %w", sourcePath, err)
 	}
 
 	// Write STRM file
 	if err := os.WriteFile(strmPath, []byte(fileURL), 0644); err != nil {
-		return fmt.Errorf("failed to write STRM file %s: %w", strmPath, err)
+		return false, fmt.Errorf("failed to write STRM file %s: %w", strmPath, err)
 	}
 
-	return nil
+	return true, nil
 }
 
 // cleanDirectory removes all files in a directory

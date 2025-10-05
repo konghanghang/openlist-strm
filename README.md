@@ -27,11 +27,13 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
 - ✅ 日志系统
 - ✅ **RESTful API 接口**
 - ✅ **Vue 3 Web UI 管理界面**
+- ✅ **Webhook 支持**
+- ✅ **Docker 部署**
 
 待实现功能（后续版本）：
 - ⏳ 元数据下载
-- ⏳ Docker 部署
-- ⏳ 实时文件监控
+- ⏳ 文件有效性检测
+- ⏳ UI 优化和完善
 
 ## 🚀 快速开始
 
@@ -205,6 +207,34 @@ curl http://localhost:8080/api/tasks/{task_id}
 curl http://localhost:8080/api/configs
 ```
 
+### Webhook 接口
+
+接收外部系统（如 Alist、下载器）的通知，自动触发 STRM 生成：
+
+```bash
+curl -X POST http://localhost:8080/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "file.upload",
+    "path": "/media/movies/new-movie.mp4",
+    "action": "add"
+  }'
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "webhook received, generation triggered",
+  "task_id": "uuid-string"
+}
+```
+
+**使用场景**：
+- Alist Webhook 通知文件上传
+- 下载器完成后自动触发
+- 自动化工作流集成
+
 ### API 认证
 
 如果在配置文件中设置了 API Token：
@@ -215,6 +245,45 @@ curl -X POST http://localhost:8080/api/generate \
   -H "Content-Type: application/json" \
   -d '{"mode": "incremental"}'
 ```
+
+## 🐳 Docker 部署
+
+### 使用 Docker Compose（推荐）
+
+```bash
+# 克隆仓库
+git clone https://github.com/konghang/openlist-strm.git
+cd openlist-strm
+
+# 复制配置文件
+cp configs/config.example.yaml config.yaml
+vim config.yaml  # 编辑配置
+
+# 启动服务
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+```
+
+### 使用 Docker
+
+```bash
+# 构建镜像
+docker build -t openlist-strm:latest .
+
+# 运行容器
+docker run -d \
+  --name openlist-strm \
+  -p 8080:8080 \
+  -v $(pwd)/config.yaml:/app/configs/config.yaml:ro \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  -v /path/to/strm:/mnt/strm \
+  openlist-strm:latest
+```
+
+详细部署文档请查看：[deployments/README.md](./deployments/README.md)
 
 ## 📦 推荐配套工具
 
