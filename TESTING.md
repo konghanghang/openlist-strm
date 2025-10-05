@@ -69,29 +69,44 @@
 
 ---
 
-#### 3. Alist Client 模块 (`internal/alist`)
+#### 3. Alist Client 模块 (`internal/alist`) ✅
 **文件**: `internal/alist/client_test.go`
 
-- [ ] 测试 Ping 方法
-  - [ ] 成功连接
-  - [ ] 连接超时
-  - [ ] 认证失败
-- [ ] 测试 ListFilesRecursive 方法
-  - [ ] 列出单层目录
-  - [ ] 递归列出子目录
-  - [ ] 过滤文件扩展名
-  - [ ] 处理空目录
-  - [ ] 处理 API 错误响应
-- [ ] 测试 GetFileURL 方法
-  - [ ] 生成直链 URL
-  - [ ] 处理签名（如果启用）
-  - [ ] URL 编码
-- [ ] 测试错误处理和重试
-  - [ ] HTTP 错误响应
-  - [ ] 网络超时
-  - [ ] JSON 解析错误
+- [x] 测试 NewClient
+  - [x] 基本初始化
+  - [x] URL 尾部斜杠处理
+- [x] 测试 Ping 方法
+  - [x] 成功连接
+  - [x] 服务器错误
+  - [x] 上下文取消
+- [x] 测试 ListFiles 方法
+  - [x] 成功列出文件
+  - [x] 空目录处理
+  - [x] API 错误处理
+  - [x] Authorization header 验证
+- [x] 测试 ListFilesRecursive 方法
+  - [x] 递归列出子目录
+  - [x] 按扩展名过滤
+  - [x] 多层目录遍历
+- [x] 测试 GetFileURL 方法
+  - [x] 使用 RawURL
+  - [x] 构造 URL（无 RawURL）
+  - [x] 签名支持
+  - [x] 文件不存在处理
+  - [x] API 错误处理
+- [x] 测试 FileItem.IsVideo
+  - [x] 各种视频格式
+  - [x] 非视频文件
+  - [x] 目录判断
+  - [x] 大小写敏感性
+- [x] 测试错误处理
+  - [x] HTTP 错误响应
+  - [x] 上下文取消
 
-**预计时间**: 60-90 分钟
+**测试工具**: httptest.NewServer (模拟 Alist API)
+
+**测试结果**: ✅ 全部通过 (17 tests, 6 subtests)
+**实际时间**: 已完成
 
 ---
 
@@ -151,17 +166,20 @@
 
 ---
 
-#### 6. API Middleware 模块 (`internal/api`)
+#### 6. API Middleware 模块 (`internal/api`) ✅
 **文件**: `internal/api/middleware_test.go`
 
-- [ ] 测试 tokenAuthMiddleware
-  - [ ] 有效 Token
-  - [ ] 无效 Token
-  - [ ] 缺少 Token
-  - [ ] Token 格式错误
-  - [ ] Bearer 前缀验证
+- [x] 测试 tokenAuthMiddleware
+  - [x] 有效 Token (X-API-Token header)
+  - [x] 有效 Token (Authorization header)
+  - [x] 无效 Token
+  - [x] 缺少 Token
+  - [x] 空 Token
+  - [x] X-API-Token 优先级
+  - [x] Bearer 格式支持
 
-**预计时间**: 20-30 分钟
+**测试结果**: ✅ 全部通过 (7 tests)
+**实际时间**: 已完成
 
 ---
 
@@ -244,17 +262,23 @@ go test -v -run TestLoadConfig ./internal/config
 
 ## 进度跟踪
 
+### 高优先级 - 核心模块
 - [x] Config 模块 (4/4) ✅
 - [x] STRM Generator 模块 (4/4) ✅
-- [ ] Alist Client 模块 (0/4)
+- [x] Alist Client 模块 (4/4) ✅
 - [ ] Storage 模块 (0/5)
+
+### 中优先级 - 业务逻辑
 - [ ] API Handlers 模块 (0/7)
-- [ ] API Middleware 模块 (0/1)
+- [x] API Middleware 模块 (1/1) ✅
+
+### 低优先级 - 辅助功能
 - [ ] Scheduler 模块 (0/5)
 - [ ] Logger 模块 (0/4)
 
-**总体进度**: 8/34 (24%)
-**核心模块覆盖**: 2/4 (50%)
+**总体进度**: 17/34 (50%)
+**核心模块覆盖**: 3/4 (75%)
+**已完成模块**: 4/8
 
 ---
 
