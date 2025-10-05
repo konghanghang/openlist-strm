@@ -54,15 +54,15 @@ schedule:
 
 # API configuration
 api:
-  enabled: false  # API not implemented in v1.0
-  token: "your-api-token-here"
+  enabled: true
+  token: ""  # Optional: set API token for authentication
   timeout: 300  # seconds
 
 # Web UI configuration
 web:
-  enabled: false  # Web UI not implemented in v1.0
-  username: "admin"
-  password: "admin123"
+  enabled: true
+  username: "admin"  # Not used in current version
+  password: "admin123"  # Not used in current version
 
 # Logging configuration
 log:

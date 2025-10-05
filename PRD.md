@@ -12,11 +12,11 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
 - **高性能**：Go 语言实现，并发处理，性能优于 Python 实现
 
 ### 1.3 技术栈
-- **后端**：Go 1.21+
+- **后端**：Go 1.23+
 - **Web 框架**：Gin
-- **数据库**：SQLite
-- **前端**：Vue.js 3 / 原生 HTML+JS（待定）
-- **部署**：Docker + Docker Compose
+- **数据库**：SQLite (GORM)
+- **前端**：Vue.js 3 + Element Plus + Vite
+- **部署**：单二进制文件（前端嵌入）/ Docker（待实现）
 
 ---
 
@@ -248,10 +248,16 @@ openlist-strm/
 │   └── web/                     # Web UI
 │       ├── handler.go
 │       └── static/
-├── web/                         # 前端代码（Vue.js）
+├── web/                         # 前端代码（Vue 3 + Vite）
 │   ├── src/
+│   │   ├── views/               # 页面组件
+│   │   ├── router/              # 路由配置
+│   │   ├── api/                 # API 封装
+│   │   └── App.vue
+│   ├── dist/                    # 构建产物
 │   ├── public/
-│   └── package.json
+│   ├── package.json
+│   └── vite.config.js
 ├── configs/
 │   └── config.example.yaml      # 配置示例
 ├── deployments/
@@ -405,9 +411,12 @@ openlist-strm/
 
 #### 3.2.7 Web UI 模块
 - **职责**：提供管理界面
-- **技术方案**：
-  - 方案1：Vue.js 3 + Element Plus（功能完整）
-  - 方案2：纯 HTML + Bootstrap（快速开发）
+- **技术方案**：Vue.js 3 + Element Plus + Vite
+- **页面结构**：
+  - 仪表盘：系统状态、快速操作、最近任务
+  - 任务管理：任务列表、执行状态、详情查看
+  - 配置管理：路径映射配置、手动触发
+- **部署方式**：构建后嵌入 Go 二进制文件（embed.FS）
 
 ---
 
@@ -415,54 +424,57 @@ openlist-strm/
 
 ### 4.1 阶段划分
 
-#### Phase 1: MVP（3-5 天）
+#### Phase 1: MVP（已完成 ✅）
 **目标**：实现核心功能，CLI 可用
 
 - [x] 项目初始化
-- [ ] 配置管理模块
-- [ ] Alist 客户端实现
-- [ ] STRM 生成器（基础版）
-- [ ] 增量/全量更新逻辑
-- [ ] 定时任务（Cron）
-- [ ] SQLite 存储
-- [ ] 基础日志
+- [x] 配置管理模块
+- [x] Alist 客户端实现
+- [x] STRM 生成器（基础版）
+- [x] 增量/全量更新逻辑
+- [x] 定时任务（Cron）
+- [x] SQLite 存储
+- [x] 基础日志
 
 **交付物**：
-- 可执行的 CLI 工具
-- 配置文件示例
-- 基础 README
+- ✅ 可执行的 CLI 工具
+- ✅ 配置文件示例
+- ✅ 基础 README
 
-#### Phase 2: 可用版本（3-4 天）
-**目标**：添加 Web UI 和手动控制
+#### Phase 2: Web UI + API（已完成 ✅）
+**目标**：添加 Web UI 和 RESTful API
 
-- [ ] Web UI 基础框架
-- [ ] 配置管理界面
-- [ ] 任务执行界面
-- [ ] 日志查看界面
-- [ ] 用户认证
+- [x] RESTful API 实现
+- [x] API Token 认证
+- [x] 任务状态查询接口
+- [x] Vue 3 项目结构
+- [x] Web UI 基础框架
+- [x] 配置管理界面
+- [x] 任务管理界面
+- [x] 仪表盘界面
+- [x] 前端构建和嵌入
+
+**交付物**：
+- ✅ 带 Web UI 的完整应用
+- ✅ RESTful API 接口
+- ✅ 单二进制文件部署
+- ✅ 更新文档
+
+#### Phase 3: 扩展功能（待开发）
+**目标**：添加高级功能和优化
+
 - [ ] Docker 打包
 - [ ] Docker Compose 配置
-
-**交付物**：
-- 带 Web UI 的完整应用
-- Docker 镜像
-- 部署文档
-
-#### Phase 3: 完整版（2-3 天）
-**目标**：添加 API 和扩展功能
-
-- [ ] RESTful API 实现
-- [ ] API Token 认证
-- [ ] 任务状态查询
 - [ ] Webhook 支持
 - [ ] 元数据下载
 - [ ] 文件有效性检测
 - [ ] UI 优化和完善
+- [ ] 实时文件监控
 
 **交付物**：
-- 完整功能版本
-- API 文档
-- 使用教程
+- Docker 镜像
+- 部署文档
+- 功能完善
 
 #### Phase 4: 优化和发布（1-2 天）
 **目标**：性能优化和文档完善
@@ -481,12 +493,12 @@ openlist-strm/
 
 ### 4.2 里程碑
 
-| 里程碑 | 时间 | 目标 |
+| 里程碑 | 状态 | 目标 |
 |--------|------|------|
-| M1: MVP 完成 | Day 5 | CLI 工具可用，核心功能完成 |
-| M2: Web UI 完成 | Day 9 | 带管理界面的完整应用 |
-| M3: API 完成 | Day 12 | 支持外部调用，功能完整 |
-| M4: v1.0 发布 | Day 14 | 生产可用，文档完善 |
+| M1: MVP 完成 | ✅ 已完成 | CLI 工具可用，核心功能完成 |
+| M2: Web UI + API 完成 | ✅ 已完成 | 带管理界面和 API 的完整应用 |
+| M3: v1.0.0 发布 | ✅ 当前版本 | 生产可用，核心功能完整 |
+| M4: 扩展功能 | 🔄 规划中 | Docker 部署、高级功能 |
 
 ---
 
