@@ -306,8 +306,11 @@ docker run -d \
 ## 📚 文档
 
 详细文档请查看：
-- [项目需求文档 (PRD)](./PRD.md)
+- [项目需求文档 (PRD)](./docs/PRD.md)
+- [测试计划文档 (TESTING)](./docs/TESTING.md)
 - [配置文件示例](./configs/config.example.yaml)
+- [Docker 部署指南](./deployments/README.md)
+- [Webhook 集成指南](./deployments/WEBHOOK.md)
 
 ## 🤝 贡献
 
