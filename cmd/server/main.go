@@ -9,11 +9,13 @@ import (
 	"syscall"
 
 	"github.com/konghang/openlist-strm/internal/alist"
+	"github.com/konghang/openlist-strm/internal/api"
 	"github.com/konghang/openlist-strm/internal/config"
 	"github.com/konghang/openlist-strm/internal/logger"
 	"github.com/konghang/openlist-strm/internal/scheduler"
 	"github.com/konghang/openlist-strm/internal/storage"
 	"github.com/konghang/openlist-strm/internal/strm"
+	"github.com/konghang/openlist-strm/internal/web"
 )
 
 var (
@@ -86,21 +88,42 @@ func main() {
 	}
 	defer sched.Stop()
 
-	// Run initial generation if mappings exist
-	if len(cfg.Mappings) > 0 {
-		logger.Info.Println("Running initial generation...")
-		if err := sched.RunAll(ctx); err != nil {
-			logger.Error.Printf("Initial generation failed: %v", err)
+	// Create API server
+	apiServer := api.NewServer(cfg, sched, db)
+
+	// Register Web UI routes
+	if cfg.Web.Enabled {
+		if err := web.RegisterRoutes(apiServer.GetRouter()); err != nil {
+			logger.Error.Printf("Failed to register web routes: %v", err)
 		} else {
-			logger.Info.Println("Initial generation completed")
+			logger.Info.Println("Web UI enabled")
 		}
 	}
+
+	// Start API server in background
+	go func() {
+		logger.Info.Printf("API server starting on %s", cfg.GetAddr())
+		if err := apiServer.Run(); err != nil {
+			logger.Error.Printf("API server error: %v", err)
+		}
+	}()
+
+	// Run initial generation if mappings exist (optional, can be disabled)
+	// if len(cfg.Mappings) > 0 {
+	// 	logger.Info.Println("Running initial generation...")
+	// 	if err := sched.RunAll(ctx); err != nil {
+	// 		logger.Error.Printf("Initial generation failed: %v", err)
+	// 	} else {
+	// 		logger.Info.Println("Initial generation completed")
+	// 	}
+	// }
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	logger.Info.Println("OpenList-STRM is running. Press Ctrl+C to exit.")
+	logger.Info.Printf("OpenList-STRM is running on http://%s", cfg.GetAddr())
+	logger.Info.Println("Press Ctrl+C to exit")
 	<-sigChan
 
 	logger.Info.Println("Shutting down gracefully...")
