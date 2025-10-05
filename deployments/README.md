@@ -1,25 +1,22 @@
 # Docker 部署指南
 
-本目录包含 OpenList-STRM 的 Docker 部署配置文件。
+本目录包含 OpenList-STRM 的 Docker 部署文档。Docker 配置文件位于项目根目录。
 
 ## 快速开始
 
 ### 1. 使用 Docker Compose（推荐）
 
 ```bash
+# 返回项目根目录
+cd ..
+
 # 复制配置文件
-cp ../configs/config.example.yaml ./config.yaml
+cp configs/config.example.yaml config.yaml
 
 # 编辑配置文件，填入你的 Alist URL 和 Token
 vim config.yaml
 
-# 复制 docker-compose 配置
-cp docker-compose.example.yml docker-compose.yml
-
-# 编辑 docker-compose.yml，修改挂载路径
-vim docker-compose.yml
-
-# 启动服务
+# 启动服务（使用根目录的 docker-compose.yml）
 docker-compose up -d
 
 # 查看日志
@@ -104,12 +101,29 @@ alist:
 
 ### 方案 2: Alist 也在 Docker 中运行
 
-在 `docker-compose.yml` 中添加 Alist 服务（参考 `docker-compose.example.yml`），然后使用服务名访问：
+在根目录的 `docker-compose.yml` 中添加 Alist 服务，然后使用服务名访问：
 
 ```yaml
 alist:
   url: "http://alist:5244"
   token: "your-token"
+```
+
+示例 docker-compose.yml 配置：
+```yaml
+services:
+  openlist-strm:
+    # ... openlist-strm 配置
+
+  alist:
+    image: xhofe/alist:latest
+    container_name: alist
+    volumes:
+      - ./alist/data:/opt/alist/data
+    ports:
+      - "5244:5244"
+    networks:
+      - openlist-network
 ```
 
 ## 持久化数据
