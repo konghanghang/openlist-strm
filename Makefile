@@ -15,9 +15,14 @@ build:
 	@cd $(BACKEND_DIR) && go build $(LDFLAGS) -o ../$(BUILD_DIR)/$(BINARY_NAME) ./cmd/server
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
-## run: Run the application
+## run: Run the application (compiled)
 run: build
 	@./$(BUILD_DIR)/$(BINARY_NAME) --config config.yaml
+
+## run-dev: Run from source without building
+run-dev:
+	@echo "Running from source..."
+	@cd $(BACKEND_DIR) && go run cmd/server/main.go -config ../configs/config.example.yaml
 
 ## clean: Clean build artifacts
 clean:
