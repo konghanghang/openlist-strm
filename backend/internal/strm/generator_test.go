@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/konghang/openlist-strm/internal/alist"
+	"github.com/konghanghang/openlist-strm/internal/alist"
 )
 
 // Mock Alist Client

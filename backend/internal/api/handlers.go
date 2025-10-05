@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/konghang/openlist-strm/internal/storage"
+	"github.com/konghanghang/openlist-strm/internal/storage"
 )
 
 // GenerateRequest represents a generate request

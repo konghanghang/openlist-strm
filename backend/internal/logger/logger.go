@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/konghang/openlist-strm/internal/config"
+	"github.com/konghanghang/openlist-strm/internal/config"
 )
 
 var (

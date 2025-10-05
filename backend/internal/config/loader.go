@@ -18,9 +18,10 @@ func Load(configPath string) (*Config, error) {
 		// Default config paths
 		v.SetConfigName("config")
 		v.SetConfigType("yaml")
-		v.AddConfigPath(".")
-		v.AddConfigPath("./configs")
-		v.AddConfigPath("/etc/openlist-strm")
+		v.AddConfigPath(".")              // 当前工作目录
+		v.AddConfigPath("./configs")      // 项目根目录的 configs/
+		v.AddConfigPath("../configs")     // 从 backend/ 目录向上查找
+		v.AddConfigPath("/etc/openlist-strm")  // 系统目录
 	}
 
 	// Read config file

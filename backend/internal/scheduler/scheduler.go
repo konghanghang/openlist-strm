@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/konghang/openlist-strm/internal/alist"
-	"github.com/konghang/openlist-strm/internal/config"
-	"github.com/konghang/openlist-strm/internal/storage"
-	"github.com/konghang/openlist-strm/internal/strm"
+	"github.com/konghanghang/openlist-strm/internal/alist"
+	"github.com/konghanghang/openlist-strm/internal/config"
+	"github.com/konghanghang/openlist-strm/internal/storage"
+	"github.com/konghanghang/openlist-strm/internal/strm"
 	"github.com/robfig/cron/v3"
 )
 
