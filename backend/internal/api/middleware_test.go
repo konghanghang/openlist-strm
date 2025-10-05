@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/konghang/openlist-strm/internal/config"
+	"github.com/konghanghang/openlist-strm/internal/config"
 )
 
 func TestTokenAuthMiddleware_ValidToken_XAPIToken(t *testing.T) {

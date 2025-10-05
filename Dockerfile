@@ -19,16 +19,19 @@ WORKDIR /app
 RUN apk add --no-cache git make
 
 # Copy go mod files
-COPY go.mod go.sum ./
+COPY backend/go.mod backend/go.sum ./backend/
+WORKDIR /app/backend
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy backend source code
+WORKDIR /app
+COPY backend/ ./backend/
 
 # Copy built frontend from previous stage
-COPY --from=frontend-builder /app/web/dist ./internal/web/dist
+COPY --from=frontend-builder /app/web/dist ./backend/internal/web/dist
 
 # Build the application
+WORKDIR /app/backend
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o /app/bin/openlist-strm ./cmd/server
 
 # Stage 3: Final runtime image

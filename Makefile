@@ -3,7 +3,8 @@
 # Variables
 BINARY_NAME=openlist-strm
 BUILD_DIR=bin
-CMD_DIR=cmd/server
+BACKEND_DIR=backend
+CMD_DIR=$(BACKEND_DIR)/cmd/server
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
@@ -11,7 +12,7 @@ LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	@go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./$(CMD_DIR)
+	@cd $(BACKEND_DIR) && go build $(LDFLAGS) -o ../$(BUILD_DIR)/$(BINARY_NAME) ./cmd/server
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
 ## run: Run the application
@@ -29,23 +30,23 @@ clean:
 ## test: Run tests
 test:
 	@echo "Running tests..."
-	@go test -v ./...
+	@cd $(BACKEND_DIR) && go test -v ./...
 
 ## deps: Download dependencies
 deps:
 	@echo "Downloading dependencies..."
-	@go mod download
-	@go mod tidy
+	@cd $(BACKEND_DIR) && go mod download
+	@cd $(BACKEND_DIR) && go mod tidy
 
 ## fmt: Format code
 fmt:
 	@echo "Formatting code..."
-	@go fmt ./...
+	@cd $(BACKEND_DIR) && go fmt ./...
 
 ## lint: Run linter
 lint:
 	@echo "Running linter..."
-	@golangci-lint run
+	@cd $(BACKEND_DIR) && golangci-lint run
 
 ## help: Show this help message
 help:

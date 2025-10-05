@@ -8,14 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/konghang/openlist-strm/internal/alist"
-	"github.com/konghang/openlist-strm/internal/api"
-	"github.com/konghang/openlist-strm/internal/config"
-	"github.com/konghang/openlist-strm/internal/logger"
-	"github.com/konghang/openlist-strm/internal/scheduler"
-	"github.com/konghang/openlist-strm/internal/storage"
-	"github.com/konghang/openlist-strm/internal/strm"
-	"github.com/konghang/openlist-strm/internal/web"
+	"github.com/konghanghang/openlist-strm/internal/alist"
+	"github.com/konghanghang/openlist-strm/internal/api"
+	"github.com/konghanghang/openlist-strm/internal/config"
+	"github.com/konghanghang/openlist-strm/internal/logger"
+	"github.com/konghanghang/openlist-strm/internal/scheduler"
+	"github.com/konghanghang/openlist-strm/internal/storage"
+	"github.com/konghanghang/openlist-strm/internal/strm"
+	"github.com/konghanghang/openlist-strm/internal/web"
 )
 
 var (

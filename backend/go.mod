@@ -1,4 +1,4 @@
-module github.com/konghang/openlist-strm
+module github.com/konghanghang/openlist-strm
 
 go 1.23.0
 

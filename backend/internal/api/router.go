@@ -3,9 +3,9 @@ package api
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/konghang/openlist-strm/internal/config"
-	"github.com/konghang/openlist-strm/internal/scheduler"
-	"github.com/konghang/openlist-strm/internal/storage"
+	"github.com/konghanghang/openlist-strm/internal/config"
+	"github.com/konghanghang/openlist-strm/internal/scheduler"
+	"github.com/konghanghang/openlist-strm/internal/storage"
 )
 
 // Server represents the API server

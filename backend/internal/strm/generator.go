@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/konghang/openlist-strm/internal/alist"
+	"github.com/konghanghang/openlist-strm/internal/alist"
 )
 
 // AlistClient is an interface for Alist operations
