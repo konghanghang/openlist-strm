@@ -7,15 +7,13 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Server   ServerConfig    `mapstructure:"server"`
-	Alist    AlistConfig     `mapstructure:"alist"`
-	STRM     STRMConfig      `mapstructure:"strm"`
-	Mappings []MappingConfig `mapstructure:"mappings"`
-	Schedule ScheduleConfig  `mapstructure:"schedule"`
-	API      APIConfig       `mapstructure:"api"`
-	Web      WebConfig       `mapstructure:"web"`
-	Log      LogConfig       `mapstructure:"log"`
-	Database DatabaseConfig  `mapstructure:"database"`
+	Server   ServerConfig   `mapstructure:"server"`
+	Alist    AlistConfig    `mapstructure:"alist"`
+	Schedule ScheduleConfig `mapstructure:"schedule"`
+	API      APIConfig      `mapstructure:"api"`
+	Web      WebConfig      `mapstructure:"web"`
+	Log      LogConfig      `mapstructure:"log"`
+	Database DatabaseConfig `mapstructure:"database"`
 }
 
 // ServerConfig represents server configuration
@@ -32,21 +30,16 @@ type AlistConfig struct {
 	Timeout     time.Duration `mapstructure:"timeout"`
 }
 
-// STRMConfig represents STRM generation configuration
-type STRMConfig struct {
-	OutputDir        string   `mapstructure:"output_dir"`
-	Concurrent       int      `mapstructure:"concurrent"`
-	Extensions       []string `mapstructure:"extensions"`
-	DownloadMetadata bool     `mapstructure:"download_metadata"`
-}
-
-// MappingConfig represents path mapping configuration
+// MappingConfig represents path mapping configuration (internal use, not from YAML)
 type MappingConfig struct {
-	Name    string `mapstructure:"name"`
-	Source  string `mapstructure:"source"`
-	Target  string `mapstructure:"target"`
-	Mode    string `mapstructure:"mode"` // incremental or full
-	Enabled bool   `mapstructure:"enabled"`
+	Name       string
+	Source     string
+	Target     string
+	Extensions []string
+	Concurrent int
+	Mode       string
+	STRMMode   string
+	Enabled    bool
 }
 
 // ScheduleConfig represents schedule configuration
@@ -94,26 +87,6 @@ func (c *Config) Validate() error {
 
 	if c.Alist.Token == "" {
 		return fmt.Errorf("alist token is required")
-	}
-
-	if c.STRM.Concurrent <= 0 {
-		c.STRM.Concurrent = 10
-	}
-
-	if len(c.STRM.Extensions) == 0 {
-		c.STRM.Extensions = []string{"mp4", "mkv", "avi", "mov", "flv", "wmv"}
-	}
-
-	for i, mapping := range c.Mappings {
-		if mapping.Source == "" {
-			return fmt.Errorf("mapping[%d]: source path is required", i)
-		}
-		if mapping.Target == "" {
-			return fmt.Errorf("mapping[%d]: target path is required", i)
-		}
-		if mapping.Mode != "incremental" && mapping.Mode != "full" {
-			return fmt.Errorf("mapping[%d]: mode must be 'incremental' or 'full'", i)
-		}
 	}
 
 	if c.Database.Path == "" {

@@ -83,6 +83,8 @@ func (c *Client) listFilesRecursiveHelper(ctx context.Context, dirPath string, e
 				return err
 			}
 		} else if file.IsVideo(extensions) {
+			// Set full path for the file
+			file.Path = path.Join(dirPath, file.Name)
 			// Add video file to result
 			*result = append(*result, file)
 		}

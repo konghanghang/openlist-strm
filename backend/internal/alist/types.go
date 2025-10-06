@@ -33,6 +33,7 @@ type FileItem struct {
 	Sign     string    `json:"sign,omitempty"`
 	Thumb    string    `json:"thumb,omitempty"`
 	Type     int       `json:"type,omitempty"`
+	Path     string    `json:"-"` // Full path (not from API, set by client)
 }
 
 // GetRequest represents a request to get file info

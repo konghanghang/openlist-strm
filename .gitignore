@@ -45,6 +45,7 @@ Thumbs.db
 # Config files (may contain sensitive data)
 config.yaml
 config.yml
+config.test.yaml
 !config.example.yaml
 !config.example.yml
 

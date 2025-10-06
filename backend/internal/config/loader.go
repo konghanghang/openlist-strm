@@ -69,13 +69,6 @@ func DefaultConfig() *Config {
 			SignEnabled: false,
 			Timeout:     30,
 		},
-		STRM: STRMConfig{
-			OutputDir:        "/mnt/strm",
-			Concurrent:       10,
-			Extensions:       []string{"mp4", "mkv", "avi", "mov", "flv", "wmv"},
-			DownloadMetadata: false,
-		},
-		Mappings: []MappingConfig{},
 		Schedule: ScheduleConfig{
 			Enabled: false,
 			Cron:    "0 2 * * *",
