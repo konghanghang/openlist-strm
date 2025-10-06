@@ -131,19 +131,17 @@ func (s *Scheduler) RunAll(ctx context.Context) error {
 	return nil
 }
 
-// Context key for trace ID
-type contextKey string
-
-const traceIDKey contextKey = "trace_id"
-
 // RunMapping runs a single mapping
 func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig) error {
 	// Get trace ID from context or generate new one
+	// Use string key directly for cross-package compatibility
 	var taskID string
-	if ctxTaskID := ctx.Value(traceIDKey); ctxTaskID != nil {
+	if ctxTaskID := ctx.Value("trace_id"); ctxTaskID != nil {
 		taskID = ctxTaskID.(string)
 	} else {
 		taskID = uuid.New().String()
+		// Put the generated task ID back into context
+		ctx = context.WithValue(ctx, "trace_id", taskID)
 	}
 	traceID := taskID[:8] // Use first 8 chars as short trace ID
 
@@ -162,7 +160,7 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 	log.Printf("[TraceID: %s] Task started: mapping=%s, mode=%s, source=%s, target=%s",
 		traceID, mapping.Name, mapping.Mode, mapping.Source, mapping.Target)
 
-	// Generate STRM files
+	// Generate STRM files (context now contains trace_id)
 	result, err := s.generator.Generate(ctx, strm.GenerateOptions{
 		SourcePath: mapping.Source,
 		TargetPath: mapping.Target,

@@ -206,6 +206,7 @@ func changeExtension(filePath, newExt string) string {
 
 // getTraceID extracts trace ID from context, returns "unknown" if not found
 func getTraceID(ctx context.Context) string {
+	// Use string directly to match scheduler package
 	if traceID := ctx.Value("trace_id"); traceID != nil {
 		if taskID, ok := traceID.(string); ok && len(taskID) >= 8 {
 			return taskID[:8]
