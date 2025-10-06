@@ -56,7 +56,11 @@ func main() {
 		logger.Error.Printf("Failed to initialize database: %v", err)
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error.Printf("Failed to close database: %v", err)
+		}
+	}()
 	logger.Info.Printf("Database initialized: %s", cfg.Database.Path)
 
 	// Note: Mappings are now managed via Web UI and stored in database only

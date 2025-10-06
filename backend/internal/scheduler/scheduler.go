@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/konghanghang/openlist-strm/internal/alist"
 	"github.com/konghanghang/openlist-strm/internal/config"
+	"github.com/konghanghang/openlist-strm/internal/contextkeys"
 	"github.com/konghanghang/openlist-strm/internal/storage"
 	"github.com/konghanghang/openlist-strm/internal/strm"
 	"github.com/robfig/cron/v3"
@@ -134,14 +135,14 @@ func (s *Scheduler) RunAll(ctx context.Context) error {
 // RunMapping runs a single mapping
 func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig) error {
 	// Get trace ID from context or generate new one
-	// Use string key directly for cross-package compatibility
+	// Get or generate task ID from context
 	var taskID string
-	if ctxTaskID := ctx.Value("trace_id"); ctxTaskID != nil {
+	if ctxTaskID := ctx.Value(contextkeys.TraceIDKey); ctxTaskID != nil {
 		taskID = ctxTaskID.(string)
 	} else {
 		taskID = uuid.New().String()
 		// Put the generated task ID back into context
-		ctx = context.WithValue(ctx, "trace_id", taskID)
+		ctx = context.WithValue(ctx, contextkeys.TraceIDKey, taskID)
 	}
 	traceID := taskID[:8] // Use first 8 chars as short trace ID
 
@@ -178,7 +179,9 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 	if err != nil {
 		task.Status = "failed"
 		task.Errors = err.Error()
-		s.db.UpdateTask(task)
+		if updateErr := s.db.UpdateTask(task); updateErr != nil {
+			log.Printf("[TraceID: %s] WARNING: Failed to update task record: %v", traceID, updateErr)
+		}
 		log.Printf("[TraceID: %s] Task FAILED: error=%v, duration=%v", traceID, err, duration)
 		return fmt.Errorf("[TraceID: %s] generation failed: %w", traceID, err)
 	}

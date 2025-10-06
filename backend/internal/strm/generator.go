@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/konghanghang/openlist-strm/internal/alist"
+	"github.com/konghanghang/openlist-strm/internal/contextkeys"
 )
 
 // AlistClient is an interface for Alist operations
@@ -210,8 +211,8 @@ func changeExtension(filePath, newExt string) string {
 
 // getTraceID extracts trace ID from context, returns "unknown" if not found
 func getTraceID(ctx context.Context) string {
-	// Use string directly to match scheduler package
-	if traceID := ctx.Value("trace_id"); traceID != nil {
+	// Get trace ID from context using proper key
+	if traceID := ctx.Value(contextkeys.TraceIDKey); traceID != nil {
 		if taskID, ok := traceID.(string); ok && len(taskID) >= 8 {
 			return taskID[:8]
 		}

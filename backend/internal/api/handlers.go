@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/konghanghang/openlist-strm/internal/contextkeys"
 	"github.com/konghanghang/openlist-strm/internal/storage"
 	"github.com/robfig/cron/v3"
 )
@@ -94,7 +95,7 @@ func (s *Server) handleGenerate(c *gin.Context) {
 	traceID := taskID[:8]
 
 	// Create context with trace ID
-	ctx := context.WithValue(context.Background(), "trace_id", taskID)
+	ctx := context.WithValue(context.Background(), contextkeys.TraceIDKey, taskID)
 
 	log.Printf("[TraceID: %s] API request received: path=%s, mode=%s", traceID, req.Path, req.Mode)
 
@@ -103,11 +104,11 @@ func (s *Server) handleGenerate(c *gin.Context) {
 		if req.Path == "" {
 			// Run all mappings
 			log.Printf("[TraceID: %s] Running all enabled mappings", traceID)
-			s.scheduler.RunAll(ctx)
+			_ = s.scheduler.RunAll(ctx) // Error already logged by RunAll
 		} else {
 			// Run specific mapping
 			log.Printf("[TraceID: %s] Running specific mapping: %s", traceID, req.Path)
-			s.scheduler.RunMappingByName(ctx, req.Path)
+			_ = s.scheduler.RunMappingByName(ctx, req.Path) // Error already logged
 		}
 	}()
 
@@ -304,13 +305,13 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	// Trigger generation in background
 	taskID := uuid.New().String()
 	traceID := taskID[:8]
-	ctx := context.WithValue(context.Background(), "trace_id", taskID)
+	ctx := context.WithValue(context.Background(), contextkeys.TraceIDKey, taskID)
 
 	log.Printf("[TraceID: %s] Webhook received: event=%s, path=%s, action=%s, matched_mapping=%s",
 		traceID, req.Event, req.Path, req.Action, *matchedMapping)
 
 	go func() {
-		s.scheduler.RunMappingByName(ctx, *matchedMapping)
+		_ = s.scheduler.RunMappingByName(ctx, *matchedMapping) // Error already logged
 	}()
 
 	c.JSON(http.StatusOK, WebhookResponse{
@@ -318,22 +319,6 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		Message: "webhook received, generation triggered",
 		TaskID:  taskID,
 	})
-}
-
-// toTaskResponse converts storage.Task to TaskResponse
-func toTaskResponse(task *storage.Task) TaskResponse {
-	return TaskResponse{
-		TaskID:       task.TaskID,
-		ConfigName:   task.ConfigName,
-		Mode:         task.Mode,
-		Status:       task.Status,
-		FilesCreated: task.FilesCreated,
-		FilesDeleted: task.FilesDeleted,
-		FilesSkipped: task.FilesSkipped,
-		Errors:       task.Errors,
-		StartedAt:    task.StartedAt,
-		CompletedAt:  task.CompletedAt,
-	}
 }
 
 // MappingRequest represents a mapping create/update request
