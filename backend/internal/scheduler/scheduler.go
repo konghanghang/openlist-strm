@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,8 @@ type Scheduler struct {
 	generator   *strm.Generator
 	db          *storage.DB
 	cron        *cron.Cron
+	cronJobs    map[uint]cron.EntryID // mapping ID -> cron entry ID
+	mu          sync.RWMutex          // protect cronJobs map
 }
 
 // New creates a new scheduler
@@ -32,29 +35,28 @@ func New(cfg *config.Config, alistClient *alist.Client, generator *strm.Generato
 		generator:   generator,
 		db:          db,
 		cron:        cron.New(),
+		cronJobs:    make(map[uint]cron.EntryID),
 	}
 }
 
 // Start starts the scheduler
 func (s *Scheduler) Start() error {
-	if !s.cfg.Schedule.Enabled {
-		log.Println("Scheduler is disabled")
-		return nil
+	// Load all mappings with cron expressions and register them
+	mappings, err := s.db.ListMappings()
+	if err != nil {
+		return fmt.Errorf("failed to list mappings: %w", err)
 	}
 
-	// Add cron job
-	_, err := s.cron.AddFunc(s.cfg.Schedule.Cron, func() {
-		log.Println("Running scheduled task...")
-		if err := s.RunAll(context.Background()); err != nil {
-			log.Printf("Scheduled task failed: %v", err)
+	for _, mapping := range mappings {
+		if mapping.Enabled && mapping.CronExpr != "" {
+			if err := s.AddCronJob(mapping.ID, mapping.Name, mapping.CronExpr); err != nil {
+				log.Printf("Failed to add cron job for mapping %s: %v", mapping.Name, err)
+			}
 		}
-	})
-	if err != nil {
-		return fmt.Errorf("failed to add cron job: %w", err)
 	}
 
 	s.cron.Start()
-	log.Printf("Scheduler started with cron: %s", s.cfg.Schedule.Cron)
+	log.Printf("Scheduler started with %d cron jobs", len(s.cronJobs))
 	return nil
 }
 
@@ -190,4 +192,55 @@ func (s *Scheduler) RunMappingByName(ctx context.Context, name string) error {
 // GetTaskStatus gets task status by task ID
 func (s *Scheduler) GetTaskStatus(taskID string) (*storage.Task, error) {
 	return s.db.GetTaskByID(taskID)
+}
+
+// AddCronJob adds a cron job for a mapping
+func (s *Scheduler) AddCronJob(mappingID uint, mappingName, cronExpr string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Remove existing job if any
+	if entryID, exists := s.cronJobs[mappingID]; exists {
+		s.cron.Remove(entryID)
+		delete(s.cronJobs, mappingID)
+	}
+
+	// Add new cron job
+	entryID, err := s.cron.AddFunc(cronExpr, func() {
+		log.Printf("Running scheduled task for mapping: %s", mappingName)
+		if err := s.RunMappingByName(context.Background(), mappingName); err != nil {
+			log.Printf("Scheduled task failed for mapping %s: %v", mappingName, err)
+		}
+	})
+	if err != nil {
+		return fmt.Errorf("failed to add cron job: %w", err)
+	}
+
+	s.cronJobs[mappingID] = entryID
+	log.Printf("Cron job added for mapping %s (ID: %d) with expression: %s", mappingName, mappingID, cronExpr)
+	return nil
+}
+
+// RemoveCronJob removes a cron job for a mapping
+func (s *Scheduler) RemoveCronJob(mappingID uint) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if entryID, exists := s.cronJobs[mappingID]; exists {
+		s.cron.Remove(entryID)
+		delete(s.cronJobs, mappingID)
+		log.Printf("Cron job removed for mapping ID: %d", mappingID)
+	}
+}
+
+// UpdateCronJob updates a cron job for a mapping
+func (s *Scheduler) UpdateCronJob(mappingID uint, mappingName, cronExpr string, enabled bool) error {
+	// If disabled or no cron expression, remove the job
+	if !enabled || cronExpr == "" {
+		s.RemoveCronJob(mappingID)
+		return nil
+	}
+
+	// Otherwise, add/update the job
+	return s.AddCronJob(mappingID, mappingName, cronExpr)
 }

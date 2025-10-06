@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/konghanghang/openlist-strm/internal/storage"
+	"github.com/robfig/cron/v3"
 )
 
 // GenerateRequest represents a generate request
@@ -187,6 +188,7 @@ func (s *Server) handleGetConfigs(c *gin.Context) {
 			Concurrent: m.Concurrent,
 			Mode:       m.Mode,
 			STRMMode:   m.STRMMode,
+			CronExpr:   m.CronExpr,
 			Enabled:    m.Enabled,
 		})
 	}
@@ -308,6 +310,7 @@ type MappingRequest struct {
 	Concurrent int      `json:"concurrent"`
 	Mode       string   `json:"mode"`
 	STRMMode   string   `json:"strm_mode"`
+	CronExpr   string   `json:"cron_expr"`
 	Enabled    *bool    `json:"enabled"`
 }
 
@@ -321,6 +324,7 @@ type MappingResponse struct {
 	Concurrent int      `json:"concurrent"`
 	Mode       string   `json:"mode"`
 	STRMMode   string   `json:"strm_mode"`
+	CronExpr   string   `json:"cron_expr"`
 	Enabled    bool     `json:"enabled"`
 }
 
@@ -357,6 +361,15 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 		return
 	}
 
+	// Validate cron expression if provided
+	if req.CronExpr != "" {
+		parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+		if _, err := parser.Parse(req.CronExpr); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid cron expression: %v", err)})
+			return
+		}
+	}
+
 	mapping := &storage.Mapping{
 		Name:       req.Name,
 		Source:     req.Source,
@@ -365,12 +378,21 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 		Concurrent: req.Concurrent,
 		Mode:       req.Mode,
 		STRMMode:   req.STRMMode,
+		CronExpr:   req.CronExpr,
 		Enabled:    enabled,
 	}
 
 	if err := s.db.CreateMapping(mapping); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping"})
 		return
+	}
+
+	// Add cron job if enabled and has cron expression
+	if mapping.Enabled && mapping.CronExpr != "" {
+		if err := s.scheduler.AddCronJob(mapping.ID, mapping.Name, mapping.CronExpr); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("mapping created but failed to add cron job: %v", err)})
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, MappingResponse{
@@ -382,6 +404,7 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 		Concurrent: mapping.Concurrent,
 		Mode:       mapping.Mode,
 		STRMMode:   mapping.STRMMode,
+		CronExpr:   mapping.CronExpr,
 		Enabled:    mapping.Enabled,
 	})
 }
@@ -430,12 +453,31 @@ func (s *Server) handleUpdateMapping(c *gin.Context) {
 		}
 		existing.STRMMode = req.STRMMode
 	}
+
+	// Validate and update cron expression
+	if req.CronExpr != existing.CronExpr {
+		if req.CronExpr != "" {
+			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+			if _, err := parser.Parse(req.CronExpr); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid cron expression: %v", err)})
+				return
+			}
+		}
+		existing.CronExpr = req.CronExpr
+	}
+
 	if req.Enabled != nil {
 		existing.Enabled = *req.Enabled
 	}
 
 	if err := s.db.UpdateMapping(existing); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update mapping"})
+		return
+	}
+
+	// Update cron job
+	if err := s.scheduler.UpdateCronJob(existing.ID, existing.Name, existing.CronExpr, existing.Enabled); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("mapping updated but failed to update cron job: %v", err)})
 		return
 	}
 
@@ -448,6 +490,7 @@ func (s *Server) handleUpdateMapping(c *gin.Context) {
 		Concurrent: existing.Concurrent,
 		Mode:       existing.Mode,
 		STRMMode:   existing.STRMMode,
+		CronExpr:   existing.CronExpr,
 		Enabled:    existing.Enabled,
 	})
 }
@@ -460,6 +503,9 @@ func (s *Server) handleDeleteMapping(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid mapping id"})
 		return
 	}
+
+	// Remove cron job first
+	s.scheduler.RemoveCronJob(mappingID)
 
 	if err := s.db.DeleteMapping(mappingID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete mapping"})
