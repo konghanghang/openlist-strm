@@ -80,6 +80,10 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 
 	log.Printf("[TraceID: %s] Found %d video files to process", traceID, len(files))
 
+	// Deduplicate files by priority (when same filename with different extensions)
+	files = deduplicateFilesByPriority(files, traceID)
+	log.Printf("[TraceID: %s] After deduplication: %d files to process", traceID, len(files))
+
 	// Validate concurrent value
 	concurrent := opts.Concurrent
 	if concurrent <= 0 {
@@ -213,4 +217,90 @@ func getTraceID(ctx context.Context) string {
 		}
 	}
 	return "unknown"
+}
+
+// getExtensionPriority returns the priority of a file extension (lower is better)
+func getExtensionPriority(ext string) int {
+	// Priority map: lower number = higher priority
+	priorities := map[string]int{
+		".mkv":  1,  // Best quality, supports multiple audio/subtitle tracks
+		".mp4":  2,  // Good compatibility
+		".avi":  3,  // Older format
+		".mov":  4,  // Apple format
+		".wmv":  5,  // Windows format
+		".flv":  6,  // Flash video
+		".m4v":  7,  // iTunes video
+		".mpg":  8,  // MPEG
+		".mpeg": 9,  // MPEG
+		".3gp":  10, // Mobile format
+		".webm": 11, // Web format
+	}
+
+	if priority, ok := priorities[strings.ToLower(ext)]; ok {
+		return priority
+	}
+	return 999 // Unknown formats get lowest priority
+}
+
+// deduplicateFilesByPriority removes duplicate files (same name, different extension)
+// keeping only the one with highest priority
+func deduplicateFilesByPriority(files []alist.FileItem, traceID string) []alist.FileItem {
+	if len(files) == 0 {
+		return files
+	}
+
+	// Group files by base name (without extension)
+	fileMap := make(map[string][]alist.FileItem)
+
+	for _, file := range files {
+		// Get base name without extension
+		ext := filepath.Ext(file.Path)
+		baseName := strings.TrimSuffix(file.Path, ext)
+
+		fileMap[baseName] = append(fileMap[baseName], file)
+	}
+
+	// Select the best file for each base name
+	result := make([]alist.FileItem, 0, len(fileMap))
+	duplicateCount := 0
+
+	for baseName, group := range fileMap {
+		if len(group) == 1 {
+			// No duplicates, just add it
+			result = append(result, group[0])
+		} else {
+			// Multiple files with same base name, select by priority
+			duplicateCount += len(group) - 1
+
+			bestFile := group[0]
+			bestPriority := getExtensionPriority(filepath.Ext(bestFile.Path))
+
+			// Log duplicate files
+			var extensions []string
+			for _, f := range group {
+				extensions = append(extensions, filepath.Ext(f.Path))
+			}
+			log.Printf("[TraceID: %s] 🔍 DUPLICATE: %s has multiple formats: %v",
+				traceID, filepath.Base(baseName), extensions)
+
+			for i := 1; i < len(group); i++ {
+				currentPriority := getExtensionPriority(filepath.Ext(group[i].Path))
+				if currentPriority < bestPriority {
+					bestFile = group[i]
+					bestPriority = currentPriority
+				}
+			}
+
+			log.Printf("[TraceID: %s] ✅ SELECTED: %s (priority: %d)",
+				traceID, filepath.Base(bestFile.Path), bestPriority)
+
+			result = append(result, bestFile)
+		}
+	}
+
+	if duplicateCount > 0 {
+		log.Printf("[TraceID: %s] Removed %d duplicate files based on priority", traceID, duplicateCount)
+	}
+
+	return result
 }
