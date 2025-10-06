@@ -59,6 +59,25 @@ func main() {
 	defer db.Close()
 	logger.Info.Printf("Database initialized: %s", cfg.Database.Path)
 
+	// Sync mappings from config file to database
+	if len(cfg.Mappings) > 0 {
+		logger.Info.Println("Syncing mappings from config file to database...")
+		for _, m := range cfg.Mappings {
+			mapping := &storage.Mapping{
+				Name:    m.Name,
+				Source:  m.Source,
+				Target:  m.Target,
+				Mode:    m.Mode,
+				Enabled: m.Enabled,
+			}
+			if err := db.UpsertMapping(mapping); err != nil {
+				logger.Warn.Printf("Failed to sync mapping %s: %v", m.Name, err)
+			} else {
+				logger.Info.Printf("Synced mapping: %s", m.Name)
+			}
+		}
+	}
+
 	// Create Alist client
 	alistClient := alist.NewClient(
 		cfg.Alist.URL,

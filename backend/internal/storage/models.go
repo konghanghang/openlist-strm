@@ -33,6 +33,18 @@ type Task struct {
 	UpdatedAt    time.Time
 }
 
+// Mapping represents a path mapping configuration
+type Mapping struct {
+	ID        uint   `gorm:"primarykey"`
+	Name      string `gorm:"uniqueIndex;not null"` // 配置名称
+	Source    string `gorm:"not null"`             // Alist 源路径
+	Target    string `gorm:"not null"`             // STRM 目标路径
+	Mode      string `gorm:"default:incremental"`  // incremental or full
+	Enabled   bool   `gorm:"default:true"`         // 是否启用
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 // User represents a user account
 type User struct {
 	ID           uint   `gorm:"primarykey"`
@@ -50,6 +62,10 @@ func (File) TableName() string {
 
 func (Task) TableName() string {
 	return "tasks"
+}
+
+func (Mapping) TableName() string {
+	return "mappings"
 }
 
 func (User) TableName() string {

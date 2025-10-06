@@ -5,6 +5,10 @@
         <div class="card-header">
           <span>配置列表</span>
           <div>
+            <el-button type="success" @click="showAddDialog">
+              <el-icon><Plus /></el-icon>
+              新增配置
+            </el-button>
             <el-button type="primary" @click="handleGenerateAll" :loading="generating">
               <el-icon><VideoPlay /></el-icon>
               全部生成
@@ -52,7 +56,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="250">
           <template #default="scope">
             <el-button
               type="primary"
@@ -63,6 +67,20 @@
             >
               生成
             </el-button>
+            <el-button
+              type="warning"
+              size="small"
+              @click="showEditDialog(scope.row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              type="danger"
+              size="small"
+              @click="handleDelete(scope.row)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -71,49 +89,95 @@
         v-if="!configs.length && !loading"
         title="暂无配置"
         type="info"
-        description="请在配置文件中添加路径映射配置"
+        description="请点击「新增配置」按钮添加路径映射配置"
         :closable="false"
         style="margin-top: 20px;"
       />
     </el-card>
 
-    <el-card style="margin-top: 20px;">
-      <template #header>
-        <span>配置说明</span>
+    <!-- 新增/编辑对话框 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogMode === 'add' ? '新增配置' : '编辑配置'"
+      width="600px"
+    >
+      <el-form :model="formData" :rules="formRules" ref="formRef" label-width="120px">
+        <el-form-item label="配置名称" prop="name">
+          <el-input v-model="formData.name" placeholder="例如: 电影" />
+        </el-form-item>
+
+        <el-form-item label="源路径" prop="source">
+          <el-input v-model="formData.source" placeholder="例如: /media/movies">
+            <template #prepend>Alist</template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item label="目标路径" prop="target">
+          <el-input v-model="formData.target" placeholder="例如: /mnt/strm/movies">
+            <template #prepend>STRM</template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item label="更新模式" prop="mode">
+          <el-radio-group v-model="formData.mode">
+            <el-radio value="incremental">增量模式（只处理新增文件）</el-radio>
+            <el-radio value="full">全量模式（清空后重新生成）</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="启用状态" prop="enabled">
+          <el-switch v-model="formData.enabled" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="submitting">
+          {{ dialogMode === 'add' ? '创建' : '保存' }}
+        </el-button>
       </template>
-      <el-descriptions :column="1" border>
-        <el-descriptions-item label="配置文件位置">
-          config.yaml
-        </el-descriptions-item>
-        <el-descriptions-item label="增量模式">
-          只处理新增或修改的文件，速度快
-        </el-descriptions-item>
-        <el-descriptions-item label="全量模式">
-          清空目标目录后重新生成所有文件，用于数据修复
-        </el-descriptions-item>
-        <el-descriptions-item label="配置示例">
-          <pre style="margin: 0; padding: 10px; background: #f5f7fa; border-radius: 4px;">
-mappings:
-  - name: "电影"
-    source: "/media/movies"
-    target: "/mnt/strm/movies"
-    mode: "incremental"
-    enabled: true</pre>
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-card>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, VideoPlay, Refresh } from '@element-plus/icons-vue'
 import api from '../api'
 
 const configs = ref([])
 const loading = ref(false)
 const generating = ref(false)
 const generatingMap = reactive({})
+const dialogVisible = ref(false)
+const dialogMode = ref('add') // 'add' or 'edit'
+const submitting = ref(false)
+const formRef = ref(null)
+
+const formData = reactive({
+  id: null,
+  name: '',
+  source: '',
+  target: '',
+  mode: 'incremental',
+  enabled: true
+})
+
+const formRules = {
+  name: [
+    { required: true, message: '请输入配置名称', trigger: 'blur' }
+  ],
+  source: [
+    { required: true, message: '请输入源路径', trigger: 'blur' }
+  ],
+  target: [
+    { required: true, message: '请输入目标路径', trigger: 'blur' }
+  ],
+  mode: [
+    { required: true, message: '请选择更新模式', trigger: 'change' }
+  ]
+}
 
 const loadConfigs = async () => {
   loading.value = true
@@ -125,6 +189,96 @@ const loadConfigs = async () => {
     ElMessage.error('加载配置失败')
   } finally {
     loading.value = false
+  }
+}
+
+const showAddDialog = () => {
+  dialogMode.value = 'add'
+  resetForm()
+  dialogVisible.value = true
+}
+
+const showEditDialog = (config) => {
+  dialogMode.value = 'edit'
+  formData.id = config.id
+  formData.name = config.name
+  formData.source = config.source
+  formData.target = config.target
+  formData.mode = config.mode
+  formData.enabled = config.enabled
+  dialogVisible.value = true
+}
+
+const resetForm = () => {
+  formData.id = null
+  formData.name = ''
+  formData.source = ''
+  formData.target = ''
+  formData.mode = 'incremental'
+  formData.enabled = true
+  if (formRef.value) {
+    formRef.value.clearValidate()
+  }
+}
+
+const handleSubmit = async () => {
+  if (!formRef.value) return
+
+  try {
+    await formRef.value.validate()
+  } catch {
+    return
+  }
+
+  submitting.value = true
+
+  try {
+    const data = {
+      name: formData.name,
+      source: formData.source,
+      target: formData.target,
+      mode: formData.mode,
+      enabled: formData.enabled
+    }
+
+    if (dialogMode.value === 'add') {
+      await api.createConfig(data)
+      ElMessage.success('配置创建成功')
+    } else {
+      await api.updateConfig(formData.id, data)
+      ElMessage.success('配置更新成功')
+    }
+
+    dialogVisible.value = false
+    loadConfigs()
+  } catch (error) {
+    console.error('Failed to save config:', error)
+    ElMessage.error(dialogMode.value === 'add' ? '创建配置失败' : '更新配置失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+const handleDelete = async (config) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除配置 "${config.name}" 吗？此操作不可恢复。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    await api.deleteConfig(config.id)
+    ElMessage.success('配置删除成功')
+    loadConfigs()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to delete config:', error)
+      ElMessage.error('删除配置失败')
+    }
   }
 }
 
@@ -169,11 +323,5 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-pre {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
-  color: #606266;
 }
 </style>

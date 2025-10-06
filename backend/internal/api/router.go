@@ -66,6 +66,9 @@ func (s *Server) setupRoutes() {
 
 		// Config routes
 		api.GET("/configs", s.handleGetConfigs)
+		api.POST("/configs", s.handleCreateMapping)
+		api.PUT("/configs/:id", s.handleUpdateMapping)
+		api.DELETE("/configs/:id", s.handleDeleteMapping)
 		api.GET("/status", s.handleGetStatus)
 
 		// Webhook routes
