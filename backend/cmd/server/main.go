@@ -59,32 +59,8 @@ func main() {
 	defer db.Close()
 	logger.Info.Printf("Database initialized: %s", cfg.Database.Path)
 
-	// Sync mappings from config file to database (only if database is empty)
-	existingMappings, err := db.ListMappings()
-	if err != nil {
-		logger.Warn.Printf("Failed to check existing mappings: %v", err)
-	}
-
-	if len(existingMappings) == 0 && len(cfg.Mappings) > 0 {
-		logger.Info.Println("Database is empty, syncing initial mappings from config file...")
-		for _, m := range cfg.Mappings {
-			mapping := &storage.Mapping{
-				Name:    m.Name,
-				Source:  m.Source,
-				Target:  m.Target,
-				Mode:    m.Mode,
-				Enabled: m.Enabled,
-			}
-			if err := db.CreateMapping(mapping); err != nil {
-				logger.Warn.Printf("Failed to sync mapping %s: %v", m.Name, err)
-			} else {
-				logger.Info.Printf("Synced mapping: %s", m.Name)
-			}
-		}
-		logger.Info.Printf("Initial sync completed: %d mappings created", len(cfg.Mappings))
-	} else if len(existingMappings) > 0 {
-		logger.Info.Printf("Found %d existing mappings in database, skipping YAML sync", len(existingMappings))
-	}
+	// Note: Mappings are now managed via Web UI and stored in database only
+	// No YAML sync is performed - use Web UI to create your first mapping
 
 	// Create Alist client
 	alistClient := alist.NewClient(
@@ -103,9 +79,9 @@ func main() {
 		logger.Info.Println("Alist server is accessible")
 	}
 
-	// Create STRM generator
-	generator := strm.NewGenerator(alistClient, cfg.STRM.Concurrent)
-	logger.Info.Printf("STRM generator created with concurrency: %d", cfg.STRM.Concurrent)
+	// Create STRM generator (concurrency is now per-mapping)
+	generator := strm.NewGenerator(alistClient)
+	logger.Info.Println("STRM generator created")
 
 	// Create and start scheduler
 	sched := scheduler.New(cfg, alistClient, generator, db)

@@ -21,14 +21,12 @@ type AlistClient interface {
 // Generator generates STRM files
 type Generator struct {
 	alistClient AlistClient
-	concurrent  int
 }
 
 // NewGenerator creates a new STRM generator
-func NewGenerator(alistClient AlistClient, concurrent int) *Generator {
+func NewGenerator(alistClient AlistClient) *Generator {
 	return &Generator{
 		alistClient: alistClient,
-		concurrent:  concurrent,
 	}
 }
 
@@ -37,7 +35,9 @@ type GenerateOptions struct {
 	SourcePath string
 	TargetPath string
 	Extensions []string
+	Concurrent int    // concurrent for this task
 	Mode       string // incremental or full
+	STRMMode   string // alist_path or http_url
 }
 
 // GenerateResult represents the result of generation
@@ -72,9 +72,15 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 		return nil, fmt.Errorf("failed to list files: %w", err)
 	}
 
+	// Validate concurrent value
+	concurrent := opts.Concurrent
+	if concurrent <= 0 {
+		concurrent = 10 // Default to 10
+	}
+
 	// Generate STRM files concurrently
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, g.concurrent)
+	sem := make(chan struct{}, concurrent)
 	mu := &sync.Mutex{}
 
 	for _, file := range files {
@@ -117,8 +123,8 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 // generateSTRMFile generates a single STRM file
 // Returns (created, error) where created is true if a new file was created
 func (g *Generator) generateSTRMFile(ctx context.Context, file alist.FileItem, opts GenerateOptions) (bool, error) {
-	// Calculate relative path
-	relPath := strings.TrimPrefix(file.Name, opts.SourcePath)
+	// Calculate relative path from full path
+	relPath := strings.TrimPrefix(file.Path, opts.SourcePath)
 	relPath = strings.TrimPrefix(relPath, "/")
 
 	// Calculate target STRM file path
@@ -139,15 +145,22 @@ func (g *Generator) generateSTRMFile(ctx context.Context, file alist.FileItem, o
 		}
 	}
 
-	// Get file URL from Alist
-	sourcePath := filepath.Join(opts.SourcePath, file.Name)
-	fileURL, err := g.alistClient.GetFileURL(ctx, sourcePath)
-	if err != nil {
-		return false, fmt.Errorf("failed to get URL for %s: %w", sourcePath, err)
+	// Determine STRM file content based on mode
+	var strmContent string
+	if opts.STRMMode == "alist_path" {
+		// MediaWarp mode: write Alist path
+		strmContent = file.Path
+	} else {
+		// Direct URL mode: get actual file URL
+		fileURL, err := g.alistClient.GetFileURL(ctx, file.Path)
+		if err != nil {
+			return false, fmt.Errorf("failed to get URL for %s: %w", file.Path, err)
+		}
+		strmContent = fileURL
 	}
 
 	// Write STRM file
-	if err := os.WriteFile(strmPath, []byte(fileURL), 0644); err != nil {
+	if err := os.WriteFile(strmPath, []byte(strmContent), 0644); err != nil {
 		return false, fmt.Errorf("failed to write STRM file %s: %w", strmPath, err)
 	}
 

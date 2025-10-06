@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -178,12 +179,15 @@ func (s *Server) handleGetConfigs(c *gin.Context) {
 	var configs []MappingResponse
 	for _, m := range mappings {
 		configs = append(configs, MappingResponse{
-			ID:      m.ID,
-			Name:    m.Name,
-			Source:  m.Source,
-			Target:  m.Target,
-			Mode:    m.Mode,
-			Enabled: m.Enabled,
+			ID:         m.ID,
+			Name:       m.Name,
+			Source:     m.Source,
+			Target:     m.Target,
+			Extensions: strings.Split(m.Extensions, ","),
+			Concurrent: m.Concurrent,
+			Mode:       m.Mode,
+			STRMMode:   m.STRMMode,
+			Enabled:    m.Enabled,
 		})
 	}
 
@@ -237,12 +241,18 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		return
 	}
 
-	// Find matching mapping configuration
+	// Find matching mapping configuration from database
+	mappings, err := s.db.ListEnabledMappings()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, WebhookResponse{
+			Success: false,
+			Message: "failed to list mappings",
+		})
+		return
+	}
+
 	var matchedMapping *string
-	for _, mapping := range s.cfg.Mappings {
-		if !mapping.Enabled {
-			continue
-		}
+	for _, mapping := range mappings {
 		// Check if the webhook path matches the mapping source
 		if len(req.Path) >= len(mapping.Source) && req.Path[:len(mapping.Source)] == mapping.Source {
 			matchedMapping = &mapping.Name
@@ -291,21 +301,27 @@ func toTaskResponse(task *storage.Task) TaskResponse {
 
 // MappingRequest represents a mapping create/update request
 type MappingRequest struct {
-	Name    string `json:"name" binding:"required"`
-	Source  string `json:"source" binding:"required"`
-	Target  string `json:"target" binding:"required"`
-	Mode    string `json:"mode"`
-	Enabled *bool  `json:"enabled"`
+	Name       string   `json:"name" binding:"required"`
+	Source     string   `json:"source" binding:"required"`
+	Target     string   `json:"target" binding:"required"`
+	Extensions []string `json:"extensions" binding:"required"`
+	Concurrent int      `json:"concurrent"`
+	Mode       string   `json:"mode"`
+	STRMMode   string   `json:"strm_mode"`
+	Enabled    *bool    `json:"enabled"`
 }
 
 // MappingResponse represents a mapping response
 type MappingResponse struct {
-	ID      uint   `json:"id"`
-	Name    string `json:"name"`
-	Source  string `json:"source"`
-	Target  string `json:"target"`
-	Mode    string `json:"mode"`
-	Enabled bool   `json:"enabled"`
+	ID         uint     `json:"id"`
+	Name       string   `json:"name"`
+	Source     string   `json:"source"`
+	Target     string   `json:"target"`
+	Extensions []string `json:"extensions"`
+	Concurrent int      `json:"concurrent"`
+	Mode       string   `json:"mode"`
+	STRMMode   string   `json:"strm_mode"`
+	Enabled    bool     `json:"enabled"`
 }
 
 // handleCreateMapping handles creating a new mapping
@@ -320,6 +336,12 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 	if req.Mode == "" {
 		req.Mode = "incremental"
 	}
+	if req.STRMMode == "" {
+		req.STRMMode = "alist_path"
+	}
+	if req.Concurrent <= 0 {
+		req.Concurrent = 10
+	}
 	enabled := true
 	if req.Enabled != nil {
 		enabled = *req.Enabled
@@ -330,13 +352,20 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "mode must be 'incremental' or 'full'"})
 		return
 	}
+	if req.STRMMode != "alist_path" && req.STRMMode != "http_url" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "strm_mode must be 'alist_path' or 'http_url'"})
+		return
+	}
 
 	mapping := &storage.Mapping{
-		Name:    req.Name,
-		Source:  req.Source,
-		Target:  req.Target,
-		Mode:    req.Mode,
-		Enabled: enabled,
+		Name:       req.Name,
+		Source:     req.Source,
+		Target:     req.Target,
+		Extensions: strings.Join(req.Extensions, ","),
+		Concurrent: req.Concurrent,
+		Mode:       req.Mode,
+		STRMMode:   req.STRMMode,
+		Enabled:    enabled,
 	}
 
 	if err := s.db.CreateMapping(mapping); err != nil {
@@ -345,12 +374,15 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, MappingResponse{
-		ID:      mapping.ID,
-		Name:    mapping.Name,
-		Source:  mapping.Source,
-		Target:  mapping.Target,
-		Mode:    mapping.Mode,
-		Enabled: mapping.Enabled,
+		ID:         mapping.ID,
+		Name:       mapping.Name,
+		Source:     mapping.Source,
+		Target:     mapping.Target,
+		Extensions: req.Extensions,
+		Concurrent: mapping.Concurrent,
+		Mode:       mapping.Mode,
+		STRMMode:   mapping.STRMMode,
+		Enabled:    mapping.Enabled,
 	})
 }
 
@@ -380,12 +412,23 @@ func (s *Server) handleUpdateMapping(c *gin.Context) {
 	existing.Name = req.Name
 	existing.Source = req.Source
 	existing.Target = req.Target
+	existing.Extensions = strings.Join(req.Extensions, ",")
+	if req.Concurrent > 0 {
+		existing.Concurrent = req.Concurrent
+	}
 	if req.Mode != "" {
 		if req.Mode != "incremental" && req.Mode != "full" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "mode must be 'incremental' or 'full'"})
 			return
 		}
 		existing.Mode = req.Mode
+	}
+	if req.STRMMode != "" {
+		if req.STRMMode != "alist_path" && req.STRMMode != "http_url" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "strm_mode must be 'alist_path' or 'http_url'"})
+			return
+		}
+		existing.STRMMode = req.STRMMode
 	}
 	if req.Enabled != nil {
 		existing.Enabled = *req.Enabled
@@ -397,12 +440,15 @@ func (s *Server) handleUpdateMapping(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, MappingResponse{
-		ID:      existing.ID,
-		Name:    existing.Name,
-		Source:  existing.Source,
-		Target:  existing.Target,
-		Mode:    existing.Mode,
-		Enabled: existing.Enabled,
+		ID:         existing.ID,
+		Name:       existing.Name,
+		Source:     existing.Source,
+		Target:     existing.Target,
+		Extensions: strings.Split(existing.Extensions, ","),
+		Concurrent: existing.Concurrent,
+		Mode:       existing.Mode,
+		STRMMode:   existing.STRMMode,
+		Enabled:    existing.Enabled,
 	})
 }
 

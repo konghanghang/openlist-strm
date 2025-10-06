@@ -40,7 +40,13 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="mode" label="更新模式" width="120">
+        <el-table-column prop="extensions" label="扩展名" width="150">
+          <template #default="scope">
+            <el-text size="small">{{ scope.row.extensions?.join(', ') }}</el-text>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="mode" label="更新模式" width="100">
           <template #default="scope">
             <el-tag :type="scope.row.mode === 'full' ? 'warning' : ''" size="small">
               {{ scope.row.mode === 'incremental' ? '增量' : '全量' }}
@@ -48,7 +54,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="enabled" label="状态" width="100">
+        <el-table-column prop="strm_mode" label="STRM模式" width="120">
+          <template #default="scope">
+            <el-tag :type="scope.row.strm_mode === 'http_url' ? 'danger' : 'primary'" size="small">
+              {{ scope.row.strm_mode === 'alist_path' ? '路径' : '直链' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="enabled" label="状态" width="80">
           <template #default="scope">
             <el-tag :type="scope.row.enabled ? 'success' : 'info'" size="small">
               {{ scope.row.enabled ? '启用' : '禁用' }}
@@ -118,10 +132,42 @@
           </el-input>
         </el-form-item>
 
+        <el-form-item label="视频扩展名" prop="extensions">
+          <el-select
+            v-model="formData.extensions"
+            multiple
+            placeholder="选择视频文件扩展名"
+            style="width: 100%"
+          >
+            <el-option label="mp4" value="mp4" />
+            <el-option label="mkv" value="mkv" />
+            <el-option label="avi" value="avi" />
+            <el-option label="mov" value="mov" />
+            <el-option label="flv" value="flv" />
+            <el-option label="wmv" value="wmv" />
+            <el-option label="ts" value="ts" />
+            <el-option label="m4v" value="m4v" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="并发数" prop="concurrent">
+          <el-input-number v-model="formData.concurrent" :min="1" :max="100" style="width: 100%" />
+          <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+            同时处理的文件数量，建议 5-20
+          </div>
+        </el-form-item>
+
         <el-form-item label="更新模式" prop="mode">
           <el-radio-group v-model="formData.mode">
             <el-radio value="incremental">增量模式（只处理新增文件）</el-radio>
             <el-radio value="full">全量模式（清空后重新生成）</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="STRM内容" prop="strm_mode">
+          <el-radio-group v-model="formData.strm_mode">
+            <el-radio value="alist_path">Alist路径（配合MediaWarp使用）</el-radio>
+            <el-radio value="http_url">直链URL（直接播放）</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -160,7 +206,10 @@ const formData = reactive({
   name: '',
   source: '',
   target: '',
+  extensions: ['mp4', 'mkv', 'avi', 'mov'],
+  concurrent: 10,
   mode: 'incremental',
+  strm_mode: 'alist_path',
   enabled: true
 })
 
@@ -174,8 +223,17 @@ const formRules = {
   target: [
     { required: true, message: '请输入目标路径', trigger: 'blur' }
   ],
+  extensions: [
+    { required: true, type: 'array', min: 1, message: '请至少选择一个扩展名', trigger: 'change' }
+  ],
+  concurrent: [
+    { required: true, type: 'number', min: 1, max: 100, message: '并发数必须在 1-100 之间', trigger: 'change' }
+  ],
   mode: [
     { required: true, message: '请选择更新模式', trigger: 'change' }
+  ],
+  strm_mode: [
+    { required: true, message: '请选择STRM内容模式', trigger: 'change' }
   ]
 }
 
@@ -204,7 +262,10 @@ const showEditDialog = (config) => {
   formData.name = config.name
   formData.source = config.source
   formData.target = config.target
+  formData.extensions = config.extensions || ['mp4', 'mkv', 'avi', 'mov']
+  formData.concurrent = config.concurrent || 10
   formData.mode = config.mode
+  formData.strm_mode = config.strm_mode || 'alist_path'
   formData.enabled = config.enabled
   dialogVisible.value = true
 }
@@ -214,7 +275,10 @@ const resetForm = () => {
   formData.name = ''
   formData.source = ''
   formData.target = ''
+  formData.extensions = ['mp4', 'mkv', 'avi', 'mov']
+  formData.concurrent = 10
   formData.mode = 'incremental'
+  formData.strm_mode = 'alist_path'
   formData.enabled = true
   if (formRef.value) {
     formRef.value.clearValidate()
@@ -237,7 +301,10 @@ const handleSubmit = async () => {
       name: formData.name,
       source: formData.source,
       target: formData.target,
+      extensions: formData.extensions,
+      concurrent: formData.concurrent,
       mode: formData.mode,
+      strm_mode: formData.strm_mode,
       enabled: formData.enabled
     }
 

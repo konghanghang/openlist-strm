@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -73,12 +74,21 @@ func (s *Scheduler) RunAll(ctx context.Context) error {
 	}
 
 	for _, mapping := range mappings {
+		// Parse extensions from database (comma-separated string)
+		extensions := strings.Split(mapping.Extensions, ",")
+		for i := range extensions {
+			extensions[i] = strings.TrimSpace(extensions[i])
+		}
+
 		mappingConfig := config.MappingConfig{
-			Name:    mapping.Name,
-			Source:  mapping.Source,
-			Target:  mapping.Target,
-			Mode:    mapping.Mode,
-			Enabled: mapping.Enabled,
+			Name:       mapping.Name,
+			Source:     mapping.Source,
+			Target:     mapping.Target,
+			Extensions: extensions,
+			Concurrent: mapping.Concurrent,
+			Mode:       mapping.Mode,
+			STRMMode:   mapping.STRMMode,
+			Enabled:    mapping.Enabled,
 		}
 
 		if err := s.RunMapping(ctx, mappingConfig); err != nil {
@@ -110,8 +120,10 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 	result, err := s.generator.Generate(ctx, strm.GenerateOptions{
 		SourcePath: mapping.Source,
 		TargetPath: mapping.Target,
-		Extensions: s.cfg.STRM.Extensions,
+		Extensions: mapping.Extensions,
+		Concurrent: mapping.Concurrent,
 		Mode:       mapping.Mode,
+		STRMMode:   mapping.STRMMode,
 	})
 
 	// Update task record
@@ -155,12 +167,21 @@ func (s *Scheduler) RunMappingByName(ctx context.Context, name string) error {
 		return fmt.Errorf("mapping not found: %s", name)
 	}
 
+	// Parse extensions from database (comma-separated string)
+	extensions := strings.Split(mapping.Extensions, ",")
+	for i := range extensions {
+		extensions[i] = strings.TrimSpace(extensions[i])
+	}
+
 	mappingConfig := config.MappingConfig{
-		Name:    mapping.Name,
-		Source:  mapping.Source,
-		Target:  mapping.Target,
-		Mode:    mapping.Mode,
-		Enabled: mapping.Enabled,
+		Name:       mapping.Name,
+		Source:     mapping.Source,
+		Target:     mapping.Target,
+		Extensions: extensions,
+		Concurrent: mapping.Concurrent,
+		Mode:       mapping.Mode,
+		STRMMode:   mapping.STRMMode,
+		Enabled:    mapping.Enabled,
 	}
 
 	return s.RunMapping(ctx, mappingConfig)

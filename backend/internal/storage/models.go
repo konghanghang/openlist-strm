@@ -33,16 +33,19 @@ type Task struct {
 	UpdatedAt    time.Time
 }
 
-// Mapping represents a path mapping configuration
+// Mapping represents a path mapping configuration (all-in-one)
 type Mapping struct {
-	ID        uint   `gorm:"primarykey"`
-	Name      string `gorm:"uniqueIndex;not null"` // 配置名称
-	Source    string `gorm:"not null"`             // Alist 源路径
-	Target    string `gorm:"not null"`             // STRM 目标路径
-	Mode      string `gorm:"default:incremental"`  // incremental or full
-	Enabled   bool   `gorm:"default:true"`         // 是否启用
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         uint   `gorm:"primarykey"`
+	Name       string `gorm:"uniqueIndex;not null"`                // 配置名称
+	Source     string `gorm:"not null"`                            // Alist 源路径
+	Target     string `gorm:"not null"`                            // STRM 目标路径
+	Extensions string `gorm:"not null"`                            // 视频扩展名，逗号分隔
+	Concurrent int    `gorm:"default:10"`                          // 并发数
+	Mode       string `gorm:"default:incremental"`                 // incremental or full
+	STRMMode   string `gorm:"column:strm_mode;default:alist_path"` // alist_path or http_url
+	Enabled    bool   `gorm:"default:true"`                        // 是否启用
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // User represents a user account
