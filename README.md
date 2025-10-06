@@ -7,11 +7,12 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
 - 🚀 **高性能**：Go 语言实现，并发处理，性能优于 Python 实现
 - 💾 **免挂载**：无需挂载网盘，通过 STRM 文件直接播放
 - 📦 **节省空间**：本地只存储小体积的 STRM 文件
-- ⏰ **自动同步**：支持定时任务，自动更新媒体库
+- ⏰ **灵活调度**：每个配置独立的定时任务，可视化 Cron 编辑器
 - 🔄 **增量更新**：智能增量同步，只处理新增和修改的文件
-- 🎯 **简单易用**：单二进制文件部署，配置简单
-- 🌐 **Web UI**：现代化 Vue 3 界面，可视化管理
+- 🎯 **简单易用**：单二进制文件部署，Web UI 可视化配置
+- 🌐 **Web UI**：现代化 Vue 3 界面，无需编辑配置文件
 - 🔌 **API 接口**：RESTful API，支持外部程序调用
+- 🎬 **MediaWarp 支持**：支持 302 重定向代理，优化播放体验
 
 ## 📋 当前版本
 
@@ -19,21 +20,21 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
 
 已实现功能：
 - ✅ Alist API 集成
-- ✅ STRM 文件生成
+- ✅ STRM 文件生成（支持 alist_path 和 http_url 两种模式）
 - ✅ 增量/全量更新模式
-- ✅ 定时任务调度（Cron）
+- ✅ **每配置独立定时任务**（可视化 Cron 编辑器）
 - ✅ SQLite 数据存储
-- ✅ 并发处理
+- ✅ 每配置独立并发控制（防风控）
 - ✅ 日志系统
-- ✅ **RESTful API 接口**
-- ✅ **Vue 3 Web UI 管理界面**
-- ✅ **Webhook 支持**
+- ✅ **RESTful API 接口**（完整的 CRUD 操作）
+- ✅ **Vue 3 Web UI 管理界面**（数据库配置管理）
+- ✅ **Webhook 支持**（自动触发任务）
 - ✅ **Docker 部署**
+- ✅ **MediaWarp 集成支持**
 
 待实现功能（后续版本）：
 - ⏳ 元数据下载
 - ⏳ 文件有效性检测
-- ⏳ UI 优化和完善
 
 ## 🚀 快速开始
 
@@ -60,17 +61,29 @@ vim config.yaml
 **最小配置**：
 
 ```yaml
+# 服务器配置
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# Alist 配置（必需）
 alist:
   url: "http://your-alist-url:5244"
   token: "your-alist-token"
+  sign_enabled: false
+  timeout: 30
 
-mappings:
-  - name: "Movies"
-    source: "/media/movies"  # Alist 中的路径
-    target: "/mnt/strm/movies"  # 本地 STRM 路径
-    mode: "incremental"
-    enabled: true
+# 数据库配置
+database:
+  path: "./data/openlist-strm.db"
+
+# 日志配置
+log:
+  level: "info"
+  file: "./logs/openlist-strm.log"
 ```
+
+**注意**：路径映射（mappings）现在通过 Web UI 管理，不再在配置文件中设置。
 
 ### 3. 运行
 
@@ -89,7 +102,13 @@ http://localhost:8080
 Web UI 提供以下功能：
 - 📊 **仪表盘**：查看系统状态、快速操作、最近任务
 - 📋 **任务管理**：查看任务列表、执行状态、详细信息
-- ⚙️ **配置管理**：查看路径映射、手动触发生成
+- ⚙️ **配置管理**：
+  - 创建/编辑/删除路径映射
+  - 配置视频扩展名、并发数、更新模式
+  - 选择 STRM 模式（Alist 路径或直链 URL）
+  - 可视化 Cron 编辑器，设置独立定时任务
+  - 查看最近三次执行时间预览
+  - 手动触发生成任务
 
 ## 📖 配置说明
 
@@ -103,29 +122,59 @@ alist:
   timeout: 30                   # 请求超时（秒）
 ```
 
-### 路径映射
+### 路径映射配置
 
-```yaml
-mappings:
-  - name: "Movies"               # 映射名称
-    source: "/media/movies"      # Alist 源路径
-    target: "/mnt/strm/movies"   # STRM 目标路径
-    mode: "incremental"          # 更新模式：incremental 或 full
-    enabled: true                # 是否启用
-```
+**路径映射现在通过 Web UI 管理**，不再在配置文件中设置。
 
-### 定时任务
+在 Web UI 中创建配置时，需要设置以下参数：
 
-```yaml
-schedule:
-  enabled: true
-  cron: "0 2 * * *"  # 每天凌晨 2 点执行
-```
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| 配置名称 | 映射的标识名称 | `Movies` |
+| 源路径 | Alist 中的路径 | `/media/movies` |
+| 目标路径 | 本地 STRM 文件保存路径 | `/mnt/strm/movies` |
+| 视频扩展名 | 需要处理的视频格式 | `mp4, mkv, avi, mov` |
+| 并发数 | 同时处理的文件数量 | `3`（推荐 1-5，防风控） |
+| 更新模式 | 增量或全量 | `incremental` / `full` |
+| STRM 模式 | 路径或直链 | `alist_path` / `http_url` |
+| 定时任务 | Cron 表达式（可选） | `0 2 * * *` |
+| 启用状态 | 是否启用此配置 | `true` / `false` |
 
-Cron 表达式说明：
+### STRM 模式说明
+
+**alist_path 模式**（推荐搭配 MediaWarp）：
+- STRM 文件内容为 Alist 路径：`/media/movies/movie.mp4`
+- 需要配合 [MediaWarp](https://github.com/AkimioJR/MediaWarp) 使用
+- MediaWarp 负责 302 重定向获取实际播放链接
+- 优点：支持 Alist 签名、CDN 切换等高级功能
+
+**http_url 模式**（直接播放）：
+- STRM 文件内容为完整 URL：`http://alist.example.com/d/media/movies/movie.mp4`
+- 直接播放，无需额外组件
+- 适合简单场景
+
+### 定时任务配置
+
+**每个配置可以有独立的定时任务**，通过 Web UI 的可视化编辑器设置：
+
+**预设模式**：
+- 每隔 N 分钟（5/10/15/20/30 分钟）
+- 每小时（可指定分钟数）
+- 每天（时间选择器）
+- 每周（选择星期 + 时间）
+- 每月（选择日期 + 时间）
+- 自定义表达式
+
+**Cron 表达式示例**：
+- `*/30 * * * *` - 每 30 分钟
+- `0 * * * *` - 每小时整点
 - `0 2 * * *` - 每天凌晨 2 点
-- `0 */6 * * *` - 每 6 小时
-- `0 0 * * 0` - 每周日凌晨
+- `0 2 * * 0` - 每周日凌晨 2 点
+- `0 2 1 * *` - 每月 1 号凌晨 2 点
+
+**执行时间预览**：
+- 编辑器会实时显示最近三次执行时间
+- 帮助验证 Cron 表达式是否正确
 
 ### API 配置
 
@@ -286,6 +335,14 @@ docker run -d \
 详细部署文档请查看：[deployments/README.md](./deployments/README.md)
 
 ## 📦 推荐配套工具
+
+### 302 重定向代理
+
+- **[MediaWarp](https://github.com/AkimioJR/MediaWarp)** ⭐⭐⭐⭐⭐
+  - 支持 Emby/Jellyfin STRM 302 重定向
+  - 支持 Alist 签名、CDN 切换
+  - 完美配合 alist_path 模式使用
+  - 推荐搭配使用
 
 ### Emby 插件
 
