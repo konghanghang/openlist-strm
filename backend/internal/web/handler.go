@@ -47,7 +47,11 @@ func RegisterRoutes(router *gin.Engine) error {
 	}
 
 	// Serve embedded static files
-	router.StaticFS("/assets", http.FS(distFS))
+	assetsFS, err := fs.Sub(distFS, "assets")
+	if err != nil {
+		return err
+	}
+	router.StaticFS("/assets", http.FS(assetsFS))
 
 	// Serve index.html for all routes (SPA)
 	router.NoRoute(func(c *gin.Context) {
