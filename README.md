@@ -80,7 +80,8 @@ database:
 # 日志配置
 log:
   level: "info"
-  file: "./logs/openlist-strm.log"
+  file: ""  # 留空则输出到 stdout（Docker 推荐）
+            # 设置路径则输出到文件，如 "./logs/openlist-strm.log"
 ```
 
 **注意**：路径映射（mappings）现在通过 Web UI 管理，不再在配置文件中设置。
@@ -340,39 +341,77 @@ grep "TraceID: abc12345" logs/openlist-strm.log | grep -E "✅|⏭️|❌" | wc 
 
 ## 🐳 Docker 部署
 
+### 拉取预构建镜像
+
+```bash
+# 从 Docker Hub 拉取（国内推荐）
+docker pull konghanghang/openlist-strm:master
+
+# 或从 GitHub Container Registry 拉取
+docker pull ghcr.io/konghanghang/openlist-strm:master
+```
+
 ### 使用 Docker Compose（推荐）
 
 ```bash
-# 克隆仓库
-git clone https://github.com/konghang/openlist-strm.git
-cd openlist-strm
+# 创建工作目录
+mkdir openlist-strm && cd openlist-strm
 
-# 复制配置文件
-cp configs/config.example.yaml config.yaml
-vim config.yaml  # 编辑配置
+# 下载示例配置
+wget https://raw.githubusercontent.com/konghanghang/openlist-strm/master/configs/config.example.yaml -O config.yaml
 
-# 启动服务
+# 编辑配置（主要配置 Alist URL 和 Token）
+vim config.yaml
+
+# 创建 docker-compose.yml 并启动
 docker-compose up -d
-
-# 查看日志
-docker-compose logs -f
 ```
+
+**docker-compose.yml 示例：**
+
+```yaml
+services:
+  openlist-strm:
+    image: konghanghang/openlist-strm:master
+    container_name: openlist-strm
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config.yaml:/app/configs/config.yaml:ro
+      - ./data:/app/data
+      - ./strm:/mnt/strm
+    environment:
+      - TZ=Asia/Shanghai
+```
+
+### 查看日志
+
+```bash
+# 实时查看日志
+docker logs -f openlist-strm
+
+# 查看最近 100 行日志
+docker logs --tail 100 openlist-strm
+
+# 查看带时间戳的日志
+docker logs -t openlist-strm
+```
+
+**注意**：默认配置日志输出到 stdout，通过 `docker logs` 查看即可。如需文件日志，请在配置中设置 `log.file` 并挂载 `/app/logs` 目录。
 
 ### 使用 Docker
 
 ```bash
-# 构建镜像
-docker build -t openlist-strm:latest .
-
 # 运行容器
 docker run -d \
   --name openlist-strm \
   -p 8080:8080 \
   -v $(pwd)/config.yaml:/app/configs/config.yaml:ro \
   -v $(pwd)/data:/app/data \
-  -v $(pwd)/logs:/app/logs \
   -v /path/to/strm:/mnt/strm \
-  openlist-strm:latest
+  -e TZ=Asia/Shanghai \
+  konghanghang/openlist-strm:master
 ```
 
 详细部署文档请查看：[deployments/README.md](./deployments/README.md)
