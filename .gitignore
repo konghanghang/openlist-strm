@@ -22,6 +22,8 @@ node_modules/
 bin/
 dist/
 build/
+backend/main
+backend/*.exe
 
 # IDE files
 .idea/
