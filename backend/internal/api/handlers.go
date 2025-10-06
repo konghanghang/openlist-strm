@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -142,17 +143,37 @@ func (s *Server) handleGetTask(c *gin.Context) {
 	})
 }
 
-// handleListTasks handles list tasks
+// handleListTasks handles list tasks with pagination
 func (s *Server) handleListTasks(c *gin.Context) {
-	limit := 20
-	offset := 0
+	// Parse pagination parameters
+	page := 1
+	pageSize := 20
 
-	tasks, err := s.db.ListTasks(limit, offset)
+	if p := c.Query("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+
+	if ps := c.Query("page_size"); ps != "" {
+		if parsed, err := strconv.Atoi(ps); err == nil && parsed > 0 && parsed <= 100 {
+			pageSize = parsed
+		}
+	}
+
+	offset := (page - 1) * pageSize
+	tasks, err := s.db.ListTasks(pageSize, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to list tasks",
 		})
 		return
+	}
+
+	// Get total count
+	total, err := s.db.CountTasks()
+	if err != nil {
+		total = 0
 	}
 
 	var response []TaskResponse
@@ -172,8 +193,10 @@ func (s *Server) handleListTasks(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"tasks": response,
-		"total": len(response),
+		"tasks":     response,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
 	})
 }
 

@@ -1,82 +1,51 @@
 <template>
   <div class="dashboard">
     <el-row :gutter="20">
-      <el-col :span="8">
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <el-icon class="stat-icon" color="#409EFF"><Odometer /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.uptime }}</div>
-              <div class="stat-label">运行时间</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <el-icon class="stat-icon" color="#67C23A"><List /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.taskCount }}</div>
-              <div class="stat-label">总任务数</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
+      <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-content">
             <el-icon class="stat-icon" color="#E6A23C"><Setting /></el-icon>
             <div class="stat-info">
               <div class="stat-value">{{ stats.configCount }}</div>
               <div class="stat-label">配置数量</div>
+              <div class="stat-extra">&nbsp;</div>
             </div>
           </div>
         </el-card>
       </el-col>
-    </el-row>
-
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>快速操作</span>
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <el-icon class="stat-icon" color="#67C23A"><List /></el-icon>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.taskCount }}</div>
+              <div class="stat-label">总任务数</div>
+              <div class="stat-extra">&nbsp;</div>
             </div>
-          </template>
-          <el-button
-            type="primary"
-            @click="handleGenerate"
-            :loading="generating"
-            style="width: 100%; margin-bottom: 10px;"
-          >
-            <el-icon><VideoPlay /></el-icon>
-            <span>生成所有 STRM 文件</span>
-          </el-button>
-          <el-alert
-            v-if="generateResult"
-            :title="generateResult.message"
-            :type="generateResult.type"
-            :closable="false"
-            style="margin-top: 10px;"
-          />
+          </div>
         </el-card>
       </el-col>
-
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>系统信息</span>
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <el-icon class="stat-icon" color="#909399"><InfoFilled /></el-icon>
+            <div class="stat-info">
+              <div class="stat-value">{{ systemInfo.version }}</div>
+              <div class="stat-label">系统版本</div>
+              <div class="stat-extra">&nbsp;</div>
             </div>
-          </template>
-          <div class="info-item">
-            <span class="info-label">版本：</span>
-            <span class="info-value">{{ systemInfo.version }}</span>
           </div>
-          <div class="info-item">
-            <span class="info-label">启动时间：</span>
-            <span class="info-value">{{ systemInfo.startTime }}</span>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <el-icon class="stat-icon" color="#409EFF"><Odometer /></el-icon>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.uptime }}</div>
+              <div class="stat-label">运行时间</div>
+              <div class="stat-extra">启动于 {{ systemInfo.startTime }}</div>
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -92,26 +61,50 @@
             </div>
           </template>
           <el-table :data="recentTasks" style="width: 100%">
-            <el-table-column prop="config_name" label="配置名称" width="180" />
+            <el-table-column prop="config_name" label="配置名称" width="150" />
             <el-table-column prop="mode" label="模式" width="100">
               <template #default="scope">
-                <el-tag size="small">{{ scope.row.mode }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="120">
-              <template #default="scope">
-                <el-tag
-                  :type="scope.row.status === 'completed' ? 'success' : scope.row.status === 'failed' ? 'danger' : 'warning'"
-                  size="small"
-                >
-                  {{ scope.row.status }}
+                <el-tag size="small" :type="scope.row.mode === 'full' ? 'warning' : ''">
+                  {{ getModeText(scope.row.mode) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="files_created" label="创建文件" width="100" />
-            <el-table-column prop="started_at" label="开始时间">
+            <el-table-column prop="status" label="状态" width="100">
+              <template #default="scope">
+                <el-tag
+                  :type="getStatusType(scope.row.status)"
+                  size="small"
+                >
+                  {{ getStatusText(scope.row.status) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="文件统计" width="200">
+              <template #default="scope">
+                <div class="file-stats">
+                  <span class="stat-item">
+                    <el-icon color="#67C23A"><CirclePlus /></el-icon>
+                    {{ scope.row.files_created }}
+                  </span>
+                  <span class="stat-item">
+                    <el-icon color="#F56C6C"><CircleClose /></el-icon>
+                    {{ scope.row.files_deleted }}
+                  </span>
+                  <span class="stat-item">
+                    <el-icon color="#E6A23C"><Remove /></el-icon>
+                    {{ scope.row.files_skipped }}
+                  </span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="started_at" label="开始时间" width="180">
               <template #default="scope">
                 {{ formatTime(scope.row.started_at) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="耗时" width="100">
+              <template #default="scope">
+                {{ calculateDuration(scope.row.started_at, scope.row.completed_at) }}
               </template>
             </el-table-column>
           </el-table>
@@ -122,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '../api'
 
@@ -138,21 +131,24 @@ const systemInfo = ref({
 })
 
 const recentTasks = ref([])
-const generating = ref(false)
-const generateResult = ref(null)
+
+// Store uptime in seconds for auto-increment
+let uptimeSeconds = 0
+let uptimeInterval = null
 
 const loadData = async () => {
   try {
     // Load status
     const status = await api.getStatus()
-    stats.value.uptime = formatUptime(status.uptime)
+    uptimeSeconds = status.uptime
+    stats.value.uptime = formatUptime(uptimeSeconds)
     systemInfo.value.version = status.version
     systemInfo.value.startTime = formatTime(status.start_time)
 
-    // Load tasks
-    const tasksData = await api.listTasks()
-    recentTasks.value = tasksData.tasks ? tasksData.tasks.slice(0, 5) : []
-    stats.value.taskCount = tasksData.tasks ? tasksData.tasks.length : 0
+    // Load tasks (latest 10 records)
+    const tasksData = await api.listTasks(1, 10)
+    recentTasks.value = tasksData.tasks || []
+    stats.value.taskCount = tasksData.total || 0
 
     // Load configs
     const configsData = await api.getConfigs()
@@ -160,27 +156,6 @@ const loadData = async () => {
   } catch (error) {
     console.error('Failed to load data:', error)
     ElMessage.error('加载数据失败')
-  }
-}
-
-const handleGenerate = async () => {
-  generating.value = true
-  generateResult.value = null
-
-  try {
-    const result = await api.generate({ mode: 'incremental' })
-    generateResult.value = {
-      type: 'success',
-      message: `任务已启动，任务ID: ${result.task_id}`
-    }
-    setTimeout(() => loadData(), 2000)
-  } catch (error) {
-    generateResult.value = {
-      type: 'error',
-      message: '启动任务失败'
-    }
-  } finally {
-    generating.value = false
   }
 }
 
@@ -197,8 +172,62 @@ const formatUptime = (seconds) => {
   return `${hours}h ${minutes}m ${secs}s`
 }
 
+const getModeText = (mode) => {
+  const modeMap = {
+    'incremental': '增量',
+    'full': '全量'
+  }
+  return modeMap[mode] || mode
+}
+
+const getStatusType = (status) => {
+  const types = {
+    'completed': 'success',
+    'running': 'warning',
+    'failed': 'danger'
+  }
+  return types[status] || 'info'
+}
+
+const getStatusText = (status) => {
+  const texts = {
+    'completed': '已完成',
+    'running': '运行中',
+    'failed': '失败'
+  }
+  return texts[status] || status
+}
+
+const calculateDuration = (start, end) => {
+  if (!start) return '-'
+  if (!end) return '进行中'
+
+  const startTime = new Date(start).getTime()
+  const endTime = new Date(end).getTime()
+  const seconds = Math.floor((endTime - startTime) / 1000)
+
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  return `${hours}h ${minutes}m`
+}
+
 onMounted(() => {
   loadData()
+
+  // Start uptime auto-increment (every second)
+  uptimeInterval = setInterval(() => {
+    uptimeSeconds++
+    stats.value.uptime = formatUptime(uptimeSeconds)
+  }, 1000)
+})
+
+onUnmounted(() => {
+  if (uptimeInterval) {
+    clearInterval(uptimeInterval)
+  }
 })
 </script>
 
@@ -239,10 +268,27 @@ onMounted(() => {
   margin-top: 4px;
 }
 
+.stat-extra {
+  font-size: 12px;
+  color: #C0C4CC;
+  margin-top: 4px;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.file-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .info-item {

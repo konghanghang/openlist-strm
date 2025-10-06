@@ -107,6 +107,13 @@ func (db *DB) ListTasks(limit, offset int) ([]*Task, error) {
 	return tasks, err
 }
 
+// CountTasks counts total number of tasks
+func (db *DB) CountTasks() (int64, error) {
+	var count int64
+	err := db.DB.Model(&Task{}).Count(&count).Error
+	return count, err
+}
+
 // GetTasksByStatus gets tasks by status
 func (db *DB) GetTasksByStatus(status string, limit int) ([]*Task, error) {
 	var tasks []*Task
