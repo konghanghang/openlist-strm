@@ -3,6 +3,7 @@ package strm
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,6 +51,9 @@ type GenerateResult struct {
 
 // Generate generates STRM files for a directory
 func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*GenerateResult, error) {
+	// Extract trace ID from context if available
+	traceID := getTraceID(ctx)
+
 	result := &GenerateResult{
 		Errors: []error{},
 	}
@@ -61,16 +65,20 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 
 	// Full mode: clean target directory
 	if opts.Mode == "full" {
+		log.Printf("[TraceID: %s] Cleaning target directory: %s", traceID, opts.TargetPath)
 		if err := cleanDirectory(opts.TargetPath); err != nil {
 			return nil, fmt.Errorf("failed to clean directory: %w", err)
 		}
 	}
 
 	// List all video files from Alist
+	log.Printf("[TraceID: %s] Scanning source directory: %s", traceID, opts.SourcePath)
 	files, err := g.alistClient.ListFilesRecursive(ctx, opts.SourcePath, opts.Extensions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list files: %w", err)
 	}
+
+	log.Printf("[TraceID: %s] Found %d video files to process", traceID, len(files))
 
 	// Validate concurrent value
 	concurrent := opts.Concurrent
@@ -98,19 +106,22 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 			defer func() { <-sem }() // Release semaphore
 
 			// Generate STRM file
-			created, err := g.generateSTRMFile(ctx, f, opts)
+			created, err := g.generateSTRMFile(ctx, f, opts, traceID)
 			if err != nil {
 				mu.Lock()
 				result.Errors = append(result.Errors, err)
 				mu.Unlock()
+				log.Printf("[TraceID: %s] ❌ ERROR: %s -> %v", traceID, f.Path, err)
 			} else if created {
 				mu.Lock()
 				result.FilesCreated++
 				mu.Unlock()
+				log.Printf("[TraceID: %s] ✅ CREATED: %s", traceID, f.Path)
 			} else {
 				mu.Lock()
 				result.FilesSkipped++
 				mu.Unlock()
+				log.Printf("[TraceID: %s] ⏭️  SKIPPED: %s (already exists)", traceID, f.Path)
 			}
 		}(file)
 	}
@@ -122,7 +133,7 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 
 // generateSTRMFile generates a single STRM file
 // Returns (created, error) where created is true if a new file was created
-func (g *Generator) generateSTRMFile(ctx context.Context, file alist.FileItem, opts GenerateOptions) (bool, error) {
+func (g *Generator) generateSTRMFile(ctx context.Context, file alist.FileItem, opts GenerateOptions, traceID string) (bool, error) {
 	// Calculate relative path from full path
 	relPath := strings.TrimPrefix(file.Path, opts.SourcePath)
 	relPath = strings.TrimPrefix(relPath, "/")
@@ -191,4 +202,14 @@ func cleanDirectory(dir string) error {
 func changeExtension(filePath, newExt string) string {
 	ext := filepath.Ext(filePath)
 	return filePath[:len(filePath)-len(ext)] + newExt
+}
+
+// getTraceID extracts trace ID from context, returns "unknown" if not found
+func getTraceID(ctx context.Context) string {
+	if traceID := ctx.Value("trace_id"); traceID != nil {
+		if taskID, ok := traceID.(string); ok && len(taskID) >= 8 {
+			return taskID[:8]
+		}
+	}
+	return "unknown"
 }
