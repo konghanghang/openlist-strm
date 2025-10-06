@@ -11,9 +11,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/robfig/cron/v3"
+
 	"github.com/konghanghang/openlist-strm/internal/contextkeys"
 	"github.com/konghanghang/openlist-strm/internal/storage"
-	"github.com/robfig/cron/v3"
 )
 
 // GenerateRequest represents a generate request

@@ -9,12 +9,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/robfig/cron/v3"
+
 	"github.com/konghanghang/openlist-strm/internal/alist"
 	"github.com/konghanghang/openlist-strm/internal/config"
 	"github.com/konghanghang/openlist-strm/internal/contextkeys"
 	"github.com/konghanghang/openlist-strm/internal/storage"
 	"github.com/konghanghang/openlist-strm/internal/strm"
-	"github.com/robfig/cron/v3"
 )
 
 // Scheduler manages task scheduling and execution
