@@ -6,6 +6,12 @@ on:
       - master
       - main
       - develop
+    paths:
+      - 'backend/**'
+      - 'web/**'
+      - 'Dockerfile'
+      - 'docker-entrypoint.sh'
+      - '.github/workflows/docker.yml'
   workflow_dispatch:
 
 jobs:
