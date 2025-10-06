@@ -422,44 +422,53 @@ const parseCronExpr = (expr) => {
   }
 
   const parts = expr.split(' ')
-  if (parts.length !== 5) {
+  // 支持 5 字段（分钟级）和 6 字段（秒级）格式
+  if (parts.length !== 5 && parts.length !== 6) {
     cronMode.value = 'custom'
     return
   }
 
-  const [minute, hour, day, month, weekday] = parts
+  // 6 字段格式: 秒 分 时 日 月 周
+  // 5 字段格式: 分 时 日 月 周（兼容旧数据）
+  let second, minute, hour, day, month, weekday
+  if (parts.length === 6) {
+    [second, minute, hour, day, month, weekday] = parts
+  } else {
+    [minute, hour, day, month, weekday] = parts
+    second = '0'
+  }
 
-  // 每隔N分钟: */5 * * * *
-  if (minute.startsWith('*/') && hour === '*' && day === '*' && month === '*' && weekday === '*') {
+  // 每隔N分钟: 0 */5 * * * *
+  if (second === '0' && minute.startsWith('*/') && hour === '*' && day === '*' && month === '*' && weekday === '*') {
     cronMode.value = 'interval_minutes'
     cronIntervalMinutes.value = parseInt(minute.substring(2))
     return
   }
 
-  // 每小时: 0 * * * *
-  if (hour === '*' && day === '*' && month === '*' && weekday === '*') {
+  // 每小时: 0 0 * * * *
+  if (second === '0' && hour === '*' && day === '*' && month === '*' && weekday === '*') {
     cronMode.value = 'hourly'
     cronMinute.value = parseInt(minute)
     return
   }
 
-  // 每天: 0 2 * * *
-  if (day === '*' && month === '*' && weekday === '*') {
+  // 每天: 0 0 2 * * *
+  if (second === '0' && day === '*' && month === '*' && weekday === '*') {
     cronMode.value = 'daily'
     cronDailyTime.value = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`
     return
   }
 
-  // 每周: 0 2 * * 0
-  if (day === '*' && month === '*' && weekday !== '*') {
+  // 每周: 0 0 2 * * 0
+  if (second === '0' && day === '*' && month === '*' && weekday !== '*') {
     cronMode.value = 'weekly'
     cronWeekday.value = parseInt(weekday)
     cronWeeklyTime.value = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`
     return
   }
 
-  // 每月: 0 2 1 * *
-  if (month === '*' && weekday === '*' && day !== '*') {
+  // 每月: 0 0 2 1 * *
+  if (second === '0' && month === '*' && weekday === '*' && day !== '*') {
     cronMode.value = 'monthly'
     cronMonthDay.value = parseInt(day)
     cronMonthlyTime.value = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`
@@ -480,31 +489,31 @@ const handleCronModeChange = () => {
   }
 }
 
-// 更新 Cron 表达式
+// 更新 Cron 表达式（6 字段格式：秒 分 时 日 月 周）
 const updateCronExpr = () => {
   switch (cronMode.value) {
     case 'disabled':
       formData.cron_expr = ''
       break
     case 'interval_minutes':
-      formData.cron_expr = `*/${cronIntervalMinutes.value} * * * *`
+      formData.cron_expr = `0 */${cronIntervalMinutes.value} * * * *`
       break
     case 'hourly':
-      formData.cron_expr = `${cronMinute.value} * * * *`
+      formData.cron_expr = `0 ${cronMinute.value} * * * *`
       break
     case 'daily': {
       const [h, m] = cronDailyTime.value.split(':')
-      formData.cron_expr = `${parseInt(m)} ${parseInt(h)} * * *`
+      formData.cron_expr = `0 ${parseInt(m)} ${parseInt(h)} * * *`
       break
     }
     case 'weekly': {
       const [h, m] = cronWeeklyTime.value.split(':')
-      formData.cron_expr = `${parseInt(m)} ${parseInt(h)} * * ${cronWeekday.value}`
+      formData.cron_expr = `0 ${parseInt(m)} ${parseInt(h)} * * ${cronWeekday.value}`
       break
     }
     case 'monthly': {
       const [h, m] = cronMonthlyTime.value.split(':')
-      formData.cron_expr = `${parseInt(m)} ${parseInt(h)} ${cronMonthDay.value} * *`
+      formData.cron_expr = `0 ${parseInt(m)} ${parseInt(h)} ${cronMonthDay.value} * *`
       break
     }
   }

@@ -362,8 +362,9 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 	}
 
 	// Validate cron expression if provided
+	// Support both 5-field (minute-based) and 6-field (second-based) cron expressions
 	if req.CronExpr != "" {
-		parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+		parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
 		if _, err := parser.Parse(req.CronExpr); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid cron expression: %v", err)})
 			return
@@ -455,9 +456,10 @@ func (s *Server) handleUpdateMapping(c *gin.Context) {
 	}
 
 	// Validate and update cron expression
+	// Support both 5-field (minute-based) and 6-field (second-based) cron expressions
 	if req.CronExpr != existing.CronExpr {
 		if req.CronExpr != "" {
-			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+			parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
 			if _, err := parser.Parse(req.CronExpr); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid cron expression: %v", err)})
 				return
