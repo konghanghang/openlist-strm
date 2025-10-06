@@ -295,6 +295,31 @@ curl -X POST http://localhost:8080/api/generate \
   -d '{"mode": "incremental"}'
 ```
 
+### Trace ID 日志追踪
+
+每个任务执行都会生成唯一的 Trace ID（取 Task ID 前 8 位），用于关联所有相关日志：
+
+**日志格式**：
+```
+[TraceID: abc12345] Task started: mapping=Movies, mode=incremental, source=/media/movies
+[TraceID: abc12345] Task COMPLETED: created=10, deleted=2, skipped=5, errors=0, duration=3.5s
+```
+
+**查询任务日志**：
+```bash
+# 通过 Trace ID 过滤日志
+grep "TraceID: abc12345" logs/openlist-strm.log
+
+# 查看任务完整执行链路
+grep "TraceID: abc12345" logs/openlist-strm.log | tail -20
+```
+
+**Trace ID 来源**：
+- API 调用：返回的 `task_id` 即为完整 Trace ID
+- Webhook 触发：响应中的 `task_id` 即为完整 Trace ID
+- 定时任务：自动生成，从日志中查看
+- 手动触发：Web UI 任务列表中显示
+
 ## 🐳 Docker 部署
 
 ### 使用 Docker Compose（推荐）
