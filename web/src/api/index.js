@@ -45,9 +45,11 @@ export default {
     return api.get(`/tasks/${taskId}`)
   },
 
-  // List tasks
-  listTasks() {
-    return api.get('/tasks')
+  // List tasks with pagination
+  listTasks(page = 1, pageSize = 20) {
+    return api.get('/tasks', {
+      params: { page, page_size: pageSize }
+    })
   },
 
   // Get configs

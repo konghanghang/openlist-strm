@@ -27,7 +27,7 @@
         <el-table-column prop="mode" label="模式" width="100">
           <template #default="scope">
             <el-tag size="small" :type="scope.row.mode === 'full' ? 'warning' : ''">
-              {{ scope.row.mode }}
+              {{ getModeText(scope.row.mode) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -86,6 +86,18 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
 
     <!-- Task Detail Dialog -->
@@ -97,7 +109,11 @@
       <el-descriptions :column="1" border v-if="currentTask">
         <el-descriptions-item label="任务ID">{{ currentTask.task_id }}</el-descriptions-item>
         <el-descriptions-item label="配置名称">{{ currentTask.config_name }}</el-descriptions-item>
-        <el-descriptions-item label="模式">{{ currentTask.mode }}</el-descriptions-item>
+        <el-descriptions-item label="模式">
+          <el-tag :type="currentTask.mode === 'full' ? 'warning' : ''">
+            {{ getModeText(currentTask.mode) }}
+          </el-tag>
+        </el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentTask.status)">
             {{ getStatusText(currentTask.status) }}
@@ -125,12 +141,16 @@ const tasks = ref([])
 const loading = ref(false)
 const detailVisible = ref(false)
 const currentTask = ref(null)
+const currentPage = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
 
 const loadTasks = async () => {
   loading.value = true
   try {
-    const data = await api.listTasks()
+    const data = await api.listTasks(currentPage.value, pageSize.value)
     tasks.value = data.tasks || []
+    total.value = data.total || 0
   } catch (error) {
     console.error('Failed to load tasks:', error)
     ElMessage.error('加载任务列表失败')
@@ -139,9 +159,28 @@ const loadTasks = async () => {
   }
 }
 
+const handlePageChange = (page) => {
+  currentPage.value = page
+  loadTasks()
+}
+
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadTasks()
+}
+
 const showTaskDetail = (task) => {
   currentTask.value = task
   detailVisible.value = true
+}
+
+const getModeText = (mode) => {
+  const modeMap = {
+    'incremental': '增量',
+    'full': '全量'
+  }
+  return modeMap[mode] || mode
 }
 
 const getStatusType = (status) => {
@@ -204,5 +243,11 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
