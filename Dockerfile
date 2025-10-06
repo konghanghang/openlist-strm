@@ -21,7 +21,8 @@ RUN apk add --no-cache git make gcc musl-dev
 # Copy go mod files
 COPY backend/go.mod backend/go.sum ./backend/
 WORKDIR /app/backend
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # Copy backend source code
 WORKDIR /app
@@ -30,9 +31,11 @@ COPY backend/ ./backend/
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /app/web/dist ./backend/internal/web/dist
 
-# Build the application
+# Build the application with build cache
 WORKDIR /app/backend
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o /app/bin/openlist-strm ./cmd/server
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=1 go build -ldflags="-w -s" -trimpath -o /app/bin/openlist-strm ./cmd/server
 
 # Stage 3: Final runtime image
 FROM alpine:latest
