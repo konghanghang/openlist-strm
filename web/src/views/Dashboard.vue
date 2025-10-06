@@ -199,8 +199,6 @@ const formatUptime = (seconds) => {
 
 onMounted(() => {
   loadData()
-  // Auto refresh every 30s
-  setInterval(loadData, 30000)
 })
 </script>
 
