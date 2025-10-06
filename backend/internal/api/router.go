@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+
 	"github.com/konghanghang/openlist-strm/internal/config"
 	"github.com/konghanghang/openlist-strm/internal/scheduler"
 	"github.com/konghanghang/openlist-strm/internal/storage"

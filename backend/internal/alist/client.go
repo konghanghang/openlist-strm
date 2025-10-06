@@ -154,7 +154,9 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, reqBody
 	if err != nil {
 		return fmt.Errorf("failed to perform request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() // Ignore close error in deferred call
+	}()
 
 	// Read response body
 	respData, err := io.ReadAll(resp.Body)
@@ -192,7 +194,9 @@ func (c *Client) Ping(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to ping Alist server: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close() // Ignore close error in deferred call
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Alist server returned status %d", resp.StatusCode)
