@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -88,16 +89,23 @@ func (s *Server) handleGenerate(c *gin.Context) {
 		return
 	}
 
-	ctx := context.Background()
 	taskID := uuid.New().String()
+	traceID := taskID[:8]
+
+	// Create context with trace ID
+	ctx := context.WithValue(context.Background(), "trace_id", taskID)
+
+	log.Printf("[TraceID: %s] API request received: path=%s, mode=%s", traceID, req.Path, req.Mode)
 
 	// Run in background
 	go func() {
 		if req.Path == "" {
 			// Run all mappings
+			log.Printf("[TraceID: %s] Running all enabled mappings", traceID)
 			s.scheduler.RunAll(ctx)
 		} else {
 			// Run specific mapping
+			log.Printf("[TraceID: %s] Running specific mapping: %s", traceID, req.Path)
 			s.scheduler.RunMappingByName(ctx, req.Path)
 		}
 	}()
@@ -271,8 +279,12 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	}
 
 	// Trigger generation in background
-	ctx := context.Background()
 	taskID := uuid.New().String()
+	traceID := taskID[:8]
+	ctx := context.WithValue(context.Background(), "trace_id", taskID)
+
+	log.Printf("[TraceID: %s] Webhook received: event=%s, path=%s, action=%s, matched_mapping=%s",
+		traceID, req.Event, req.Path, req.Action, *matchedMapping)
 
 	go func() {
 		s.scheduler.RunMappingByName(ctx, *matchedMapping)

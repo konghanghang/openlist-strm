@@ -131,9 +131,21 @@ func (s *Scheduler) RunAll(ctx context.Context) error {
 	return nil
 }
 
+// Context key for trace ID
+type contextKey string
+
+const traceIDKey contextKey = "trace_id"
+
 // RunMapping runs a single mapping
 func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig) error {
-	taskID := uuid.New().String()
+	// Get trace ID from context or generate new one
+	var taskID string
+	if ctxTaskID := ctx.Value(traceIDKey); ctxTaskID != nil {
+		taskID = ctxTaskID.(string)
+	} else {
+		taskID = uuid.New().String()
+	}
+	traceID := taskID[:8] // Use first 8 chars as short trace ID
 
 	// Create task record
 	task := &storage.Task{
@@ -144,10 +156,11 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 		StartedAt:  time.Now(),
 	}
 	if err := s.db.CreateTask(task); err != nil {
-		return fmt.Errorf("failed to create task: %w", err)
+		return fmt.Errorf("[TraceID: %s] failed to create task: %w", traceID, err)
 	}
 
-	log.Printf("Task %s started for mapping %s", taskID, mapping.Name)
+	log.Printf("[TraceID: %s] Task started: mapping=%s, mode=%s, source=%s, target=%s",
+		traceID, mapping.Name, mapping.Mode, mapping.Source, mapping.Target)
 
 	// Generate STRM files
 	result, err := s.generator.Generate(ctx, strm.GenerateOptions{
@@ -162,12 +175,14 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 	// Update task record
 	now := time.Now()
 	task.CompletedAt = &now
+	duration := now.Sub(task.StartedAt)
 
 	if err != nil {
 		task.Status = "failed"
 		task.Errors = err.Error()
 		s.db.UpdateTask(task)
-		return fmt.Errorf("generation failed: %w", err)
+		log.Printf("[TraceID: %s] Task FAILED: error=%v, duration=%v", traceID, err, duration)
+		return fmt.Errorf("[TraceID: %s] generation failed: %w", traceID, err)
 	}
 
 	task.Status = "completed"
@@ -181,14 +196,15 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 			errMsg += e.Error() + "; "
 		}
 		task.Errors = errMsg
+		log.Printf("[TraceID: %s] Task completed with %d errors", traceID, len(result.Errors))
 	}
 
 	if err := s.db.UpdateTask(task); err != nil {
-		log.Printf("Failed to update task: %v", err)
+		log.Printf("[TraceID: %s] WARNING: Failed to update task record: %v", traceID, err)
 	}
 
-	log.Printf("Task %s completed: created=%d, deleted=%d, skipped=%d, errors=%d",
-		taskID, result.FilesCreated, result.FilesDeleted, result.FilesSkipped, len(result.Errors))
+	log.Printf("[TraceID: %s] Task COMPLETED: created=%d, deleted=%d, skipped=%d, errors=%d, duration=%v",
+		traceID, result.FilesCreated, result.FilesDeleted, result.FilesSkipped, len(result.Errors), duration)
 
 	return nil
 }
@@ -243,7 +259,10 @@ func (s *Scheduler) AddCronJob(mappingID uint, mappingName, cronExpr string) err
 	entryID, err := s.cron.AddFunc(cronExpr, func() {
 		startTime := time.Now()
 		log.Printf("[Scheduler] ========== Cron job TRIGGERED: mapping=%s (ID: %d) ==========", mappingName, mappingID)
+
+		// RunMappingByName will create its own TraceID and log with it
 		if err := s.RunMappingByName(context.Background(), mappingName); err != nil {
+			// Extract TraceID from error message if present
 			log.Printf("[Scheduler] Scheduled task FAILED for mapping %s: %v", mappingName, err)
 		} else {
 			duration := time.Since(startTime)
