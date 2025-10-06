@@ -55,6 +55,21 @@ export default {
     return api.get('/configs')
   },
 
+  // Create config/mapping
+  createConfig(data) {
+    return api.post('/configs', data)
+  },
+
+  // Update config/mapping
+  updateConfig(id, data) {
+    return api.put(`/configs/${id}`, data)
+  },
+
+  // Delete config/mapping
+  deleteConfig(id) {
+    return api.delete(`/configs/${id}`)
+  },
+
   // Get system status
   getStatus() {
     return api.get('/status')

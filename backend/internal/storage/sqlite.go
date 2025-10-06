@@ -32,7 +32,7 @@ func New(dbPath string) (*DB, error) {
 	}
 
 	// Auto migrate
-	if err := db.AutoMigrate(&File{}, &Task{}, &User{}); err != nil {
+	if err := db.AutoMigrate(&File{}, &Task{}, &Mapping{}, &User{}); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
@@ -132,4 +132,69 @@ func (db *DB) GetUserByUsername(username string) (*User, error) {
 // UpdateUser updates a user
 func (db *DB) UpdateUser(user *User) error {
 	return db.DB.Save(user).Error
+}
+
+// CreateMapping creates a new mapping configuration
+func (db *DB) CreateMapping(mapping *Mapping) error {
+	return db.DB.Create(mapping).Error
+}
+
+// UpdateMapping updates a mapping configuration
+func (db *DB) UpdateMapping(mapping *Mapping) error {
+	return db.DB.Save(mapping).Error
+}
+
+// GetMappingByID gets a mapping by ID
+func (db *DB) GetMappingByID(id uint) (*Mapping, error) {
+	var mapping Mapping
+	err := db.DB.First(&mapping, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &mapping, nil
+}
+
+// GetMappingByName gets a mapping by name
+func (db *DB) GetMappingByName(name string) (*Mapping, error) {
+	var mapping Mapping
+	err := db.DB.Where("name = ?", name).First(&mapping).Error
+	if err != nil {
+		return nil, err
+	}
+	return &mapping, nil
+}
+
+// ListMappings lists all mapping configurations
+func (db *DB) ListMappings() ([]*Mapping, error) {
+	var mappings []*Mapping
+	err := db.DB.Order("created_at ASC").Find(&mappings).Error
+	return mappings, err
+}
+
+// ListEnabledMappings lists all enabled mapping configurations
+func (db *DB) ListEnabledMappings() ([]*Mapping, error) {
+	var mappings []*Mapping
+	err := db.DB.Where("enabled = ?", true).Order("created_at ASC").Find(&mappings).Error
+	return mappings, err
+}
+
+// DeleteMapping deletes a mapping by ID
+func (db *DB) DeleteMapping(id uint) error {
+	return db.DB.Delete(&Mapping{}, id).Error
+}
+
+// UpsertMapping creates or updates a mapping by name
+func (db *DB) UpsertMapping(mapping *Mapping) error {
+	var existing Mapping
+	err := db.DB.Where("name = ?", mapping.Name).First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		// Create new
+		return db.DB.Create(mapping).Error
+	}
+	if err != nil {
+		return err
+	}
+	// Update existing
+	mapping.ID = existing.ID
+	return db.DB.Save(mapping).Error
 }

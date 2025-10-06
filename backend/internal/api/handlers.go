@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -166,11 +167,18 @@ func (s *Server) handleListTasks(c *gin.Context) {
 	})
 }
 
-// handleGetConfigs handles get configurations
+// handleGetConfigs handles get configurations (from database)
 func (s *Server) handleGetConfigs(c *gin.Context) {
-	var configs []ConfigResponse
-	for _, m := range s.cfg.Mappings {
-		configs = append(configs, ConfigResponse{
+	mappings, err := s.db.ListMappings()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list mappings"})
+		return
+	}
+
+	var configs []MappingResponse
+	for _, m := range mappings {
+		configs = append(configs, MappingResponse{
+			ID:      m.ID,
 			Name:    m.Name,
 			Source:  m.Source,
 			Target:  m.Target,
@@ -279,4 +287,138 @@ func toTaskResponse(task *storage.Task) TaskResponse {
 		StartedAt:    task.StartedAt,
 		CompletedAt:  task.CompletedAt,
 	}
+}
+
+// MappingRequest represents a mapping create/update request
+type MappingRequest struct {
+	Name    string `json:"name" binding:"required"`
+	Source  string `json:"source" binding:"required"`
+	Target  string `json:"target" binding:"required"`
+	Mode    string `json:"mode"`
+	Enabled *bool  `json:"enabled"`
+}
+
+// MappingResponse represents a mapping response
+type MappingResponse struct {
+	ID      uint   `json:"id"`
+	Name    string `json:"name"`
+	Source  string `json:"source"`
+	Target  string `json:"target"`
+	Mode    string `json:"mode"`
+	Enabled bool   `json:"enabled"`
+}
+
+// handleCreateMapping handles creating a new mapping
+func (s *Server) handleCreateMapping(c *gin.Context) {
+	var req MappingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Set defaults
+	if req.Mode == "" {
+		req.Mode = "incremental"
+	}
+	enabled := true
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+
+	// Validate mode
+	if req.Mode != "incremental" && req.Mode != "full" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "mode must be 'incremental' or 'full'"})
+		return
+	}
+
+	mapping := &storage.Mapping{
+		Name:    req.Name,
+		Source:  req.Source,
+		Target:  req.Target,
+		Mode:    req.Mode,
+		Enabled: enabled,
+	}
+
+	if err := s.db.CreateMapping(mapping); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, MappingResponse{
+		ID:      mapping.ID,
+		Name:    mapping.Name,
+		Source:  mapping.Source,
+		Target:  mapping.Target,
+		Mode:    mapping.Mode,
+		Enabled: mapping.Enabled,
+	})
+}
+
+// handleUpdateMapping handles updating a mapping
+func (s *Server) handleUpdateMapping(c *gin.Context) {
+	id := c.Param("id")
+	var mappingID uint
+	if _, err := fmt.Sscanf(id, "%d", &mappingID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid mapping id"})
+		return
+	}
+
+	var req MappingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get existing mapping
+	existing, err := s.db.GetMappingByID(mappingID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "mapping not found"})
+		return
+	}
+
+	// Update fields
+	existing.Name = req.Name
+	existing.Source = req.Source
+	existing.Target = req.Target
+	if req.Mode != "" {
+		if req.Mode != "incremental" && req.Mode != "full" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "mode must be 'incremental' or 'full'"})
+			return
+		}
+		existing.Mode = req.Mode
+	}
+	if req.Enabled != nil {
+		existing.Enabled = *req.Enabled
+	}
+
+	if err := s.db.UpdateMapping(existing); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update mapping"})
+		return
+	}
+
+	c.JSON(http.StatusOK, MappingResponse{
+		ID:      existing.ID,
+		Name:    existing.Name,
+		Source:  existing.Source,
+		Target:  existing.Target,
+		Mode:    existing.Mode,
+		Enabled: existing.Enabled,
+	})
+}
+
+// handleDeleteMapping handles deleting a mapping
+func (s *Server) handleDeleteMapping(c *gin.Context) {
+	id := c.Param("id")
+	var mappingID uint
+	if _, err := fmt.Sscanf(id, "%d", &mappingID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid mapping id"})
+		return
+	}
+
+	if err := s.db.DeleteMapping(mappingID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete mapping"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "mapping deleted successfully"})
 }

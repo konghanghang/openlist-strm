@@ -65,14 +65,23 @@ func (s *Scheduler) Stop() {
 	}
 }
 
-// RunAll runs all enabled mappings
+// RunAll runs all enabled mappings (from database)
 func (s *Scheduler) RunAll(ctx context.Context) error {
-	for _, mapping := range s.cfg.Mappings {
-		if !mapping.Enabled {
-			continue
+	mappings, err := s.db.ListEnabledMappings()
+	if err != nil {
+		return fmt.Errorf("failed to list mappings: %w", err)
+	}
+
+	for _, mapping := range mappings {
+		mappingConfig := config.MappingConfig{
+			Name:    mapping.Name,
+			Source:  mapping.Source,
+			Target:  mapping.Target,
+			Mode:    mapping.Mode,
+			Enabled: mapping.Enabled,
 		}
 
-		if err := s.RunMapping(ctx, mapping); err != nil {
+		if err := s.RunMapping(ctx, mappingConfig); err != nil {
 			log.Printf("Failed to run mapping %s: %v", mapping.Name, err)
 		}
 	}
@@ -139,14 +148,22 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 	return nil
 }
 
-// RunMappingByName runs a mapping by name
+// RunMappingByName runs a mapping by name (from database)
 func (s *Scheduler) RunMappingByName(ctx context.Context, name string) error {
-	for _, mapping := range s.cfg.Mappings {
-		if mapping.Name == name {
-			return s.RunMapping(ctx, mapping)
-		}
+	mapping, err := s.db.GetMappingByName(name)
+	if err != nil {
+		return fmt.Errorf("mapping not found: %s", name)
 	}
-	return fmt.Errorf("mapping not found: %s", name)
+
+	mappingConfig := config.MappingConfig{
+		Name:    mapping.Name,
+		Source:  mapping.Source,
+		Target:  mapping.Target,
+		Mode:    mapping.Mode,
+		Enabled: mapping.Enabled,
+	}
+
+	return s.RunMapping(ctx, mappingConfig)
 }
 
 // GetTaskStatus gets task status by task ID
