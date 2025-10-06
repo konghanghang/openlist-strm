@@ -33,7 +33,8 @@ web:
 # Logging configuration
 log:
   level: "info"  # debug, info, warn, error
-  file: "./logs/openlist-strm.log"  # Empty string to disable file logging
+  file: ""  # Empty string outputs to stdout (recommended for Docker)
+            # Set to "./logs/openlist-strm.log" for file logging
   max_size: 100  # MB
   max_backups: 3
 
