@@ -69,10 +69,6 @@ func DefaultConfig() *Config {
 			SignEnabled: false,
 			Timeout:     30,
 		},
-		Schedule: ScheduleConfig{
-			Enabled: false,
-			Cron:    "0 2 * * *",
-		},
 		API: APIConfig{
 			Enabled: true,
 			Token:   "",

@@ -9,7 +9,6 @@ import (
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
 	Alist    AlistConfig    `mapstructure:"alist"`
-	Schedule ScheduleConfig `mapstructure:"schedule"`
 	API      APIConfig      `mapstructure:"api"`
 	Web      WebConfig      `mapstructure:"web"`
 	Log      LogConfig      `mapstructure:"log"`
@@ -40,12 +39,7 @@ type MappingConfig struct {
 	Mode       string
 	STRMMode   string
 	Enabled    bool
-}
-
-// ScheduleConfig represents schedule configuration
-type ScheduleConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	Cron    string `mapstructure:"cron"`
+	CronExpr   string
 }
 
 // APIConfig represents API configuration

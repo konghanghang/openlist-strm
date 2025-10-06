@@ -15,10 +15,8 @@ alist:
 # Note: Path mappings are now managed via Web UI and stored in database
 # Use the Web UI (http://localhost:8080) to create and manage your mappings
 
-# Schedule configuration
-schedule:
-  enabled: true
-  cron: "0 2 * * *"  # Every day at 2:00 AM
+# Note: Schedule tasks are now configured per-mapping in Web UI
+# Each mapping can have its own cron expression for automatic execution
 
 # API configuration
 api:

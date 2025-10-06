@@ -39,11 +39,12 @@ type Mapping struct {
 	Name       string `gorm:"uniqueIndex;not null"`                // 配置名称
 	Source     string `gorm:"not null"`                            // Alist 源路径
 	Target     string `gorm:"not null"`                            // STRM 目标路径
-	Extensions string `gorm:"not null"`                            // 视频扩展名，逗号分隔
+	Extensions string `gorm:"default:mp4,mkv,avi"`                 // 视频扩展名，逗号分隔
 	Concurrent int    `gorm:"default:10"`                          // 并发数
 	Mode       string `gorm:"default:incremental"`                 // incremental or full
 	STRMMode   string `gorm:"column:strm_mode;default:alist_path"` // alist_path or http_url
 	Enabled    bool   `gorm:"default:true"`                        // 是否启用
+	CronExpr   string `gorm:"default:"`                            // Cron 表达式，为空则不启用定时
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
