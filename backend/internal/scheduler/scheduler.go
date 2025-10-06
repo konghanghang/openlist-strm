@@ -34,7 +34,7 @@ func New(cfg *config.Config, alistClient *alist.Client, generator *strm.Generato
 		alistClient: alistClient,
 		generator:   generator,
 		db:          db,
-		cron:        cron.New(),
+		cron:        cron.New(cron.WithSeconds()), // Support second-level cron expressions
 		cronJobs:    make(map[uint]cron.EntryID),
 	}
 }
@@ -47,16 +47,47 @@ func (s *Scheduler) Start() error {
 		return fmt.Errorf("failed to list mappings: %w", err)
 	}
 
+	log.Printf("[Scheduler] Loading mappings from database, found %d total mappings", len(mappings))
+
+	registeredCount := 0
 	for _, mapping := range mappings {
+		log.Printf("[Scheduler] Processing mapping: name=%s, enabled=%v, cron_expr=%s",
+			mapping.Name, mapping.Enabled, mapping.CronExpr)
+
 		if mapping.Enabled && mapping.CronExpr != "" {
 			if err := s.AddCronJob(mapping.ID, mapping.Name, mapping.CronExpr); err != nil {
-				log.Printf("Failed to add cron job for mapping %s: %v", mapping.Name, err)
+				log.Printf("[Scheduler] ERROR: Failed to add cron job for mapping %s: %v", mapping.Name, err)
+			} else {
+				registeredCount++
+			}
+		} else {
+			if !mapping.Enabled {
+				log.Printf("[Scheduler] Skipping mapping %s: disabled", mapping.Name)
+			} else if mapping.CronExpr == "" {
+				log.Printf("[Scheduler] Skipping mapping %s: no cron expression", mapping.Name)
 			}
 		}
 	}
 
 	s.cron.Start()
-	log.Printf("Scheduler started with %d cron jobs", len(s.cronJobs))
+	log.Printf("[Scheduler] Scheduler started successfully with %d cron jobs registered", registeredCount)
+
+	// Log all registered cron jobs with their next execution times
+	// Note: We need to get the times after cron.Start() for accurate Next values
+	if registeredCount > 0 {
+		log.Printf("[Scheduler] Active cron jobs:")
+		s.mu.RLock()
+		for id, entryID := range s.cronJobs {
+			entry := s.cron.Entry(entryID)
+			if !entry.Next.IsZero() {
+				log.Printf("[Scheduler]   - Mapping ID %d: Next run at %s", id, entry.Next.Format("2006-01-02 15:04:05"))
+			} else {
+				log.Printf("[Scheduler]   - Mapping ID %d: Next run time not yet calculated", id)
+			}
+		}
+		s.mu.RUnlock()
+	}
+
 	return nil
 }
 
@@ -199,25 +230,48 @@ func (s *Scheduler) AddCronJob(mappingID uint, mappingName, cronExpr string) err
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	log.Printf("[Scheduler] AddCronJob called: mappingID=%d, name=%s, expr=%s", mappingID, mappingName, cronExpr)
+
 	// Remove existing job if any
 	if entryID, exists := s.cronJobs[mappingID]; exists {
+		log.Printf("[Scheduler] Removing existing cron job for mapping ID %d", mappingID)
 		s.cron.Remove(entryID)
 		delete(s.cronJobs, mappingID)
 	}
 
 	// Add new cron job
 	entryID, err := s.cron.AddFunc(cronExpr, func() {
-		log.Printf("Running scheduled task for mapping: %s", mappingName)
+		startTime := time.Now()
+		log.Printf("[Scheduler] ========== Cron job TRIGGERED: mapping=%s (ID: %d) ==========", mappingName, mappingID)
 		if err := s.RunMappingByName(context.Background(), mappingName); err != nil {
-			log.Printf("Scheduled task failed for mapping %s: %v", mappingName, err)
+			log.Printf("[Scheduler] Scheduled task FAILED for mapping %s: %v", mappingName, err)
+		} else {
+			duration := time.Since(startTime)
+			log.Printf("[Scheduler] Scheduled task COMPLETED for mapping %s, duration: %v", mappingName, duration)
 		}
+		log.Printf("[Scheduler] ========== Cron job FINISHED: mapping=%s (ID: %d) ==========", mappingName, mappingID)
 	})
 	if err != nil {
+		log.Printf("[Scheduler] ERROR: Failed to create cron job for mapping %s: %v", mappingName, err)
 		return fmt.Errorf("failed to add cron job: %w", err)
 	}
 
 	s.cronJobs[mappingID] = entryID
-	log.Printf("Cron job added for mapping %s (ID: %d) with expression: %s", mappingName, mappingID, cronExpr)
+
+	// Calculate next execution time manually
+	// Support both 5-field (minute-based) and 6-field (second-based) cron expressions
+	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	schedule, err := parser.Parse(cronExpr)
+	if err != nil {
+		log.Printf("[Scheduler] WARNING: Failed to parse cron expression for next time calculation: %v", err)
+		log.Printf("[Scheduler] Cron job REGISTERED successfully: mapping=%s (ID: %d), expr=%s",
+			mappingName, mappingID, cronExpr)
+	} else {
+		nextTime := schedule.Next(time.Now())
+		log.Printf("[Scheduler] Cron job REGISTERED successfully: mapping=%s (ID: %d), expr=%s, next_run=%s",
+			mappingName, mappingID, cronExpr, nextTime.Format("2006-01-02 15:04:05"))
+	}
+
 	return nil
 }
 
@@ -226,21 +280,34 @@ func (s *Scheduler) RemoveCronJob(mappingID uint) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	log.Printf("[Scheduler] RemoveCronJob called for mapping ID: %d", mappingID)
+
 	if entryID, exists := s.cronJobs[mappingID]; exists {
 		s.cron.Remove(entryID)
 		delete(s.cronJobs, mappingID)
-		log.Printf("Cron job removed for mapping ID: %d", mappingID)
+		log.Printf("[Scheduler] Cron job REMOVED successfully for mapping ID: %d", mappingID)
+	} else {
+		log.Printf("[Scheduler] No cron job found for mapping ID: %d, skipping removal", mappingID)
 	}
 }
 
 // UpdateCronJob updates a cron job for a mapping
 func (s *Scheduler) UpdateCronJob(mappingID uint, mappingName, cronExpr string, enabled bool) error {
+	log.Printf("[Scheduler] UpdateCronJob called: mappingID=%d, name=%s, expr=%s, enabled=%v",
+		mappingID, mappingName, cronExpr, enabled)
+
 	// If disabled or no cron expression, remove the job
 	if !enabled || cronExpr == "" {
+		if !enabled {
+			log.Printf("[Scheduler] Mapping %s is disabled, removing cron job", mappingName)
+		} else {
+			log.Printf("[Scheduler] Mapping %s has empty cron expression, removing cron job", mappingName)
+		}
 		s.RemoveCronJob(mappingID)
 		return nil
 	}
 
 	// Otherwise, add/update the job
+	log.Printf("[Scheduler] Updating cron job for mapping %s", mappingName)
 	return s.AddCronJob(mappingID, mappingName, cronExpr)
 }
