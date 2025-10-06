@@ -299,19 +299,37 @@ curl -X POST http://localhost:8080/api/generate \
 
 每个任务执行都会生成唯一的 Trace ID（取 Task ID 前 8 位），用于关联所有相关日志：
 
-**日志格式**：
+**任务级日志**：
 ```
 [TraceID: abc12345] Task started: mapping=Movies, mode=incremental, source=/media/movies
-[TraceID: abc12345] Task COMPLETED: created=10, deleted=2, skipped=5, errors=0, duration=3.5s
+[TraceID: abc12345] Scanning source directory: /media/movies
+[TraceID: abc12345] Found 150 video files to process
+[TraceID: abc12345] Task COMPLETED: created=10, deleted=2, skipped=140, errors=0, duration=3.5s
+```
+
+**文件级日志**（每个文件处理状态）：
+```
+[TraceID: abc12345] ✅ CREATED: /media/movies/Movie1.mp4
+[TraceID: abc12345] ⏭️  SKIPPED: /media/movies/Movie2.mp4 (already exists)
+[TraceID: abc12345] ❌ ERROR: /media/movies/Movie3.mp4 -> failed to get URL: timeout
 ```
 
 **查询任务日志**：
 ```bash
-# 通过 Trace ID 过滤日志
+# 通过 Trace ID 过滤所有日志
 grep "TraceID: abc12345" logs/openlist-strm.log
 
-# 查看任务完整执行链路
-grep "TraceID: abc12345" logs/openlist-strm.log | tail -20
+# 只看任务级日志（排除文件级）
+grep "TraceID: abc12345" logs/openlist-strm.log | grep -v "CREATED\|SKIPPED\|ERROR:"
+
+# 只看创建的文件
+grep "TraceID: abc12345" logs/openlist-strm.log | grep "✅ CREATED"
+
+# 只看错误的文件
+grep "TraceID: abc12345" logs/openlist-strm.log | grep "❌ ERROR"
+
+# 统计各状态文件数量
+grep "TraceID: abc12345" logs/openlist-strm.log | grep -E "✅|⏭️|❌" | wc -l
 ```
 
 **Trace ID 来源**：
