@@ -1,0 +1,203 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./web
+      run: npm ci
+
+    - name: Build frontend
+      working-directory: ./web
+      run: npm run build
+
+    - name: Upload frontend artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-dist
+        path: web/dist/
+
+  build-binaries:
+    name: Build Binaries
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download frontend artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-dist
+        path: web/dist/
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build binary
+      working-directory: ./backend
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        BINARY_NAME=openlist-strm-${{ matrix.goos }}-${{ matrix.goarch }}
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          BINARY_NAME="${BINARY_NAME}.exe"
+        fi
+        go build -v -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+          -o ../bin/${BINARY_NAME} ./cmd/server
+
+    - name: Create archive
+      run: |
+        cd bin
+        ARCHIVE_NAME=openlist-strm-${{ steps.version.outputs.VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          zip ${ARCHIVE_NAME}.zip openlist-strm-${{ matrix.goos }}-${{ matrix.goarch }}.exe
+        else
+          tar czf ${ARCHIVE_NAME}.tar.gz openlist-strm-${{ matrix.goos }}-${{ matrix.goarch }}
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: bin/openlist-strm-*
+
+  create-release:
+    name: Create Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts/
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.version.outputs.VERSION }}
+        body: |
+          ## 更新日志
+
+          ${{ steps.changelog.outputs.CHANGELOG }}
+
+          ## 下载
+
+          选择适合你系统的版本下载：
+          - **Linux AMD64**: `openlist-strm-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz`
+          - **Linux ARM64**: `openlist-strm-${{ steps.version.outputs.VERSION }}-linux-arm64.tar.gz`
+          - **macOS Intel**: `openlist-strm-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz`
+          - **macOS Apple Silicon**: `openlist-strm-${{ steps.version.outputs.VERSION }}-darwin-arm64.tar.gz`
+          - **Windows AMD64**: `openlist-strm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip`
+
+          ## Docker 镜像
+
+          ```bash
+          docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}
+          ```
+        files: artifacts/binary-*/*
+        draft: false
+        prerelease: false
+
+  build-docker:
+    name: Build Docker Image
+    needs: build-frontend
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download frontend artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-dist
+        path: web/dist/
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}
+          ghcr.io/${{ github.repository }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
