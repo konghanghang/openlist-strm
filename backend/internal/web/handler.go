@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:embed dist/*
+//go:embed all:dist
 var distFiles embed.FS
 
 // RegisterRoutes registers web UI routes
