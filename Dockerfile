@@ -15,8 +15,8 @@ FROM golang:1.23-alpine AS backend-builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache git make
+# Install build dependencies (gcc and musl-dev required for CGO/SQLite)
+RUN apk add --no-cache git make gcc musl-dev
 
 # Copy go mod files
 COPY backend/go.mod backend/go.sum ./backend/
