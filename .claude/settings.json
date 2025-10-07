@@ -1,0 +1,96 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(rm:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(chmod:*)",
+      "Bash(mv:*)",
+
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git log:*)",
+      "Bash(git config:*)",
+      "Bash(git reset:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reflog:*)",
+
+      "Bash(python3 --version)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(pip freeze)",
+      "Bash(python3 -m venv:*)",
+      "Bash(python3 setup.py:*)",
+      "Bash(python3:*)",
+      "Bash(pytest:*)",
+      "Bash(coverage run:*)",
+      "Bash(coverage report:*)",
+
+      "Bash(CONFIG_FILE=config.test.yaml python3 database/manage.py check)",
+      "Bash(CONFIG_FILE=config.test.yaml python3 database/manage.py tables)",
+      "Bash(CONFIG_FILE=config.test.yaml python3 database/manage.py init)",
+      "Bash(CONFIG_FILE=config.test.yaml python3 database/manage.py status)",
+
+      "Bash(CONFIG_FILE=config.test.yaml python3 -c \"import config;from crawler.database import DatabaseManager;from notifier.email_notifier import EmailNotifier;print('🔧 配置系统完整性测试')\")",
+      "Bash(CONFIG_FILE=config.test.yaml python3 -c \"import asyncio;from crawler.database import DatabaseManager;import config;async def test_save_resource(): pass;asyncio.run(test_save_resource())\")",
+
+      "Bash(pipenv install:*)",
+      "Bash(pipenv run:*)",
+      "Bash(poetry install:*)",
+      "Bash(poetry run:*)",
+
+      "Bash(go mod:*)",
+      "Bash(go get:*)",
+      "Bash(go build:*)",
+      "Bash(go run:*)",
+      "Bash(go tool cover:*)",
+      "Bash(go doc:*)",
+      "Bash(go list:*)",
+      "Bash(/opt/homebrew/opt/go@1.22/bin/go version)",
+
+      "Bash(go test:*)",
+      "Bash(/opt/homebrew/opt/go@1.22/bin/go test ./internal/...)",
+      "Bash(/opt/homebrew/opt/go@1.22/bin/go test ./internal/... -cover)",
+      "Bash(/opt/homebrew/opt/go@1.22/bin/go test ./internal/... -v)",
+
+      "Bash(docker-compose up:*)",
+      "Bash(docker exec:*)",
+      "Bash(psql:*)",
+
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "Bash(curl:*)",
+      "Bash(timeout:*)",
+      "Bash(kill:*)",
+      "Bash(pkill:*)"
+    ],
+
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ],
+
+    "ask": [
+      "Bash(git push:*)"
+    ],
+
+    "defaultMode": "acceptEdits",
+    "disableBypassPermissionsMode": "disable"
+  },
+
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "ENV": "development",
+    "GO_ENV": "test"
+  },
+
+  "outputStyle": "中文，详细解释，使用 Markdown 结构化格式"
+}
