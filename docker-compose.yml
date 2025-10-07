@@ -23,7 +23,14 @@ services:
       # STRM output directory (mount your media library path here)
       - /path/to/your/strm:/mnt/strm
     environment:
+      # 时区设置
       - TZ=Asia/Shanghai
+
+      # 用户权限设置（与宿主机用户匹配，避免权限问题）
+      # 获取当前用户 UID: id -u
+      # 获取当前用户 GID: id -g
+      - PUID=1000
+      - PGID=1000
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
