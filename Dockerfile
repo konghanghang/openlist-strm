@@ -43,12 +43,8 @@ FROM alpine:latest
 LABEL maintainer="konghang <yslao@outlook.com>"
 LABEL description="OpenList-STRM - STRM file generator for Alist"
 
-# Install runtime dependencies (su-exec for user switching)
-RUN apk --no-cache add ca-certificates tzdata su-exec
-
-# Create app user
-RUN addgroup -g 1000 app && \
-    adduser -D -u 1000 -G app app
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /app
 
@@ -58,13 +54,6 @@ COPY --from=backend-builder /app/bin/openlist-strm .
 # Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Create necessary directories with proper permissions
-RUN mkdir -p /app/data /app/logs /app/configs && \
-    chown -R app:app /app
-
-# Note: Don't switch to app user here, entrypoint will handle it
-# This allows fixing permissions at runtime
 
 # Expose port
 EXPOSE 8080
