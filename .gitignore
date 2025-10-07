@@ -65,4 +65,8 @@ tmp/
 temp/
 
 # Claude Code
-.claude/
+# Ignore most .claude/ directory contents (session history, temp files)
+# But keep settings.json (project shared settings)
+# Ignore settings.local.json (personal local settings)
+.claude/*
+!.claude/settings.json
