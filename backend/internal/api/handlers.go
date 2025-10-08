@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -244,16 +245,74 @@ func (s *Server) handleGetStatus(c *gin.Context) {
 
 // WebhookRequest represents a webhook request
 type WebhookRequest struct {
-	Event  string `json:"event"`  // Event type: file.upload, file.delete, etc.
-	Path   string `json:"path"`   // File or directory path
-	Action string `json:"action"` // Action: add, update, delete
+	Path       string `json:"path" binding:"required"` // 网盘原始路径（文件或目录）
+	Event      string `json:"event"`                   // 事件类型（可选）
+	ConfigName string `json:"config_name"`             // 指定配置名称（可选，优先使用）
+	Mode       string `json:"mode"`                    // 执行模式：incremental/full（可选，覆盖配置）
+	Source     string `json:"source"`                  // 来源标识（可选，用于日志）
+
+	// 路径映射：网盘路径 -> Alist路径
+	DrivePath string `json:"drive_path"` // 网盘路径前缀（可选）
+	AlistPath string `json:"alist_path"` // Alist路径前缀（可选）
 }
 
 // WebhookResponse represents a webhook response
 type WebhookResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+	Skipped bool   `json:"skipped,omitempty"` // 是否跳过（未匹配到配置）
 	TaskID  string `json:"task_id,omitempty"`
+}
+
+// convertPath 将网盘路径转换为 Alist 路径
+func convertPath(originalPath, drivePath, alistPath string) (string, bool) {
+	// 如果没有配置映射规则，直接返回原路径
+	if drivePath == "" || alistPath == "" {
+		return originalPath, false
+	}
+
+	// 清理路径
+	originalPath = filepath.Clean(originalPath)
+	drivePath = filepath.Clean(drivePath)
+	alistPath = filepath.Clean(alistPath)
+
+	// 检查是否匹配前缀
+	if !strings.HasPrefix(originalPath, drivePath) {
+		// 前缀不匹配，返回原路径
+		return originalPath, false
+	}
+
+	// 去掉原前缀，得到相对路径
+	relPath := strings.TrimPrefix(originalPath, drivePath)
+	relPath = strings.TrimPrefix(relPath, string(filepath.Separator))
+
+	// 拼接新前缀
+	if relPath == "" {
+		return alistPath, true
+	}
+
+	return filepath.Join(alistPath, relPath), true
+}
+
+// matchPath 检查文件路径是否匹配源路径（支持目录和文件）
+func matchPath(filePath, sourcePath string) bool {
+	// 清理路径
+	filePath = filepath.Clean(filePath)
+	sourcePath = filepath.Clean(sourcePath)
+
+	// 精确匹配
+	if filePath == sourcePath {
+		return true
+	}
+
+	// 前缀匹配 + 确保路径边界
+	if strings.HasPrefix(filePath, sourcePath) {
+		rest := filePath[len(sourcePath):]
+		// 必须是路径分隔符开头，避免 /media/movies-hd 匹配 /media/movies
+		return len(rest) > 0 && rest[0] == filepath.Separator
+	}
+
+	return false
 }
 
 // handleWebhook handles webhook notifications from external systems
@@ -267,52 +326,106 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		return
 	}
 
-	// Validate event and path
-	if req.Path == "" {
-		c.JSON(http.StatusBadRequest, WebhookResponse{
-			Success: false,
-			Message: "path is required",
-		})
-		return
+	// 生成 TraceID
+	taskID := uuid.New().String()
+	traceID := taskID[:8]
+
+	// 记录原始请求
+	log.Printf("[TraceID: %s] Webhook received: path=%s, event=%s, source=%s, config_name=%s, mode=%s",
+		traceID, req.Path, req.Event, req.Source, req.ConfigName, req.Mode)
+
+	// 应用路径转换
+	convertedPath, converted := convertPath(req.Path, req.DrivePath, req.AlistPath)
+	if converted {
+		log.Printf("[TraceID: %s] Path converted: %s -> %s (drive_path=%s, alist_path=%s)",
+			traceID, req.Path, convertedPath, req.DrivePath, req.AlistPath)
+	} else if req.DrivePath != "" && req.AlistPath != "" {
+		log.Printf("[TraceID: %s] WARNING: Path conversion failed (prefix mismatch), using original path: %s",
+			traceID, req.Path)
 	}
 
-	// Find matching mapping configuration from database
-	mappings, err := s.db.ListEnabledMappings()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, WebhookResponse{
-			Success: false,
-			Message: "failed to list mappings",
-		})
-		return
-	}
+	// 查找匹配的配置
+	var matchedMappingName string
+	var matchedMappingMode string
 
-	var matchedMapping *string
-	for _, mapping := range mappings {
-		// Check if the webhook path matches the mapping source
-		if len(req.Path) >= len(mapping.Source) && req.Path[:len(mapping.Source)] == mapping.Source {
-			matchedMapping = &mapping.Name
-			break
+	// 优先使用指定的配置名称
+	if req.ConfigName != "" {
+		mapping, err := s.db.GetMappingByName(req.ConfigName)
+		if err != nil {
+			log.Printf("[TraceID: %s] ERROR: Config not found: %s", traceID, req.ConfigName)
+			c.JSON(http.StatusBadRequest, WebhookResponse{
+				Success: false,
+				Message: fmt.Sprintf("config not found: %s", req.ConfigName),
+			})
+			return
+		}
+		if !mapping.Enabled {
+			log.Printf("[TraceID: %s] WARNING: Config is disabled: %s", traceID, req.ConfigName)
+			c.JSON(http.StatusOK, WebhookResponse{
+				Success: true,
+				Skipped: true,
+				Message: fmt.Sprintf("config is disabled: %s", req.ConfigName),
+			})
+			return
+		}
+		matchedMappingName = mapping.Name
+		matchedMappingMode = mapping.Mode
+		log.Printf("[TraceID: %s] Using specified config: %s", traceID, matchedMappingName)
+	} else {
+		// 通过路径匹配查找配置
+		mappings, err := s.db.ListEnabledMappings()
+		if err != nil {
+			log.Printf("[TraceID: %s] ERROR: Failed to list mappings: %v", traceID, err)
+			c.JSON(http.StatusInternalServerError, WebhookResponse{
+				Success: false,
+				Message: "failed to list mappings",
+			})
+			return
+		}
+
+		for _, mapping := range mappings {
+			if matchPath(convertedPath, mapping.Source) {
+				matchedMappingName = mapping.Name
+				matchedMappingMode = mapping.Mode
+				log.Printf("[TraceID: %s] Matched config by path: %s (source=%s)",
+					traceID, mapping.Name, mapping.Source)
+				break
+			}
+		}
+
+		if matchedMappingName == "" {
+			log.Printf("[TraceID: %s] No matching config found for path: %s", traceID, convertedPath)
+			c.JSON(http.StatusOK, WebhookResponse{
+				Success: true,
+				Skipped: true,
+				Message: "no matching mapping found",
+			})
+			return
 		}
 	}
 
-	if matchedMapping == nil {
-		c.JSON(http.StatusOK, WebhookResponse{
-			Success: true,
-			Message: "no matching mapping found, skipping",
-		})
-		return
+	// 确定执行模式（Webhook 的 mode 参数优先）
+	execMode := matchedMappingMode
+	if req.Mode != "" {
+		if req.Mode == "incremental" || req.Mode == "full" {
+			execMode = req.Mode
+			log.Printf("[TraceID: %s] Mode overridden by webhook: %s -> %s",
+				traceID, matchedMappingMode, execMode)
+		} else {
+			log.Printf("[TraceID: %s] WARNING: Invalid mode in webhook: %s, using config mode: %s",
+				traceID, req.Mode, matchedMappingMode)
+		}
 	}
 
-	// Trigger generation in background
-	taskID := uuid.New().String()
-	traceID := taskID[:8]
+	// 创建 context
 	ctx := context.WithValue(context.Background(), contextkeys.TraceIDKey, taskID)
 
-	log.Printf("[TraceID: %s] Webhook received: event=%s, path=%s, action=%s, matched_mapping=%s",
-		traceID, req.Event, req.Path, req.Action, *matchedMapping)
+	log.Printf("[TraceID: %s] Triggering generation: config=%s, mode=%s",
+		traceID, matchedMappingName, execMode)
 
+	// 后台执行任务
 	go func() {
-		_ = s.scheduler.RunMappingByName(ctx, *matchedMapping) // Error already logged
+		_ = s.scheduler.RunMappingByName(ctx, matchedMappingName) // Error already logged
 	}()
 
 	c.JSON(http.StatusOK, WebhookResponse{

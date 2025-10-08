@@ -364,19 +364,113 @@ curl http://localhost:8080/api/configs
 
 ### Webhook 接口
 
-接收外部系统（如 Alist、下载器）的通知，自动触发 STRM 生成：
+接收外部系统（如 Alist、下载器）的通知，自动触发 STRM 生成。
+
+#### 基本用法
 
 ```bash
 curl -X POST http://localhost:8080/api/webhook \
   -H "Content-Type: application/json" \
   -d '{
-    "event": "file.upload",
-    "path": "/media/movies/new-movie.mp4",
-    "action": "add"
+    "path": "/aliyun/movies/new-movie.mp4",
+    "event": "file.upload"
   }'
 ```
 
-**响应示例**：
+#### 请求参数
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `path` | string | ✅ | 文件或目录路径 |
+| `event` | string | ❌ | 事件类型（用于日志记录） |
+| `config_name` | string | ❌ | 指定配置名称（优先使用，跳过路径匹配） |
+| `mode` | string | ❌ | 执行模式：`incremental` 或 `full`（覆盖配置默认值） |
+| `source` | string | ❌ | 来源标识（用于日志记录） |
+| `drive_path` | string | ❌ | 网盘路径前缀（用于路径映射） |
+| `alist_path` | string | ❌ | Alist 路径前缀（用于路径映射） |
+
+#### 高级功能：路径映射
+
+当 Webhook 通知的路径是**网盘原始路径**，而非 Alist 挂载路径时，可以使用路径映射进行转换。
+
+**场景示例**：
+```
+网盘实际路径: /我的资源/影视/电影
+Alist 挂载路径: /aliyun/movies
+OpenList-STRM 配置的 source: /aliyun/movies
+```
+
+如果 Webhook 通知的是网盘原始路径 `/我的资源/影视/电影/movie.mp4`，需要转换为 Alist 路径才能匹配配置。
+
+**使用路径映射**：
+```bash
+curl -X POST http://localhost:8080/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "/我的资源/影视/电影/斗罗大陆/S01E01.mp4",
+    "event": "file.upload",
+    "drive_path": "/我的资源/影视/电影",
+    "alist_path": "/aliyun/movies"
+  }'
+```
+
+**转换过程**：
+1. 原始路径：`/我的资源/影视/电影/斗罗大陆/S01E01.mp4`
+2. 去掉 `drive_path` 前缀：`/斗罗大陆/S01E01.mp4`
+3. 拼接 `alist_path`：`/aliyun/movies/斗罗大陆/S01E01.mp4`
+4. 用转换后的路径匹配配置的 `source`
+
+#### 使用场景示例
+
+**场景 1：基本用法（路径自动匹配）**
+```bash
+curl -X POST http://localhost:8080/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "/aliyun/movies/new-movie.mp4",
+    "event": "file.upload",
+    "source": "alist"
+  }'
+```
+
+**场景 2：指定配置名称**
+```bash
+curl -X POST http://localhost:8080/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "/aliyun/movies/new-movie.mp4",
+    "config_name": "Movies",
+    "mode": "incremental"
+  }'
+```
+
+**场景 3：网盘路径转换**
+```bash
+curl -X POST http://localhost:8080/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "/我的资源/影视/电影/movie.mp4",
+    "event": "file.upload",
+    "drive_path": "/我的资源/影视/电影",
+    "alist_path": "/aliyun/movies",
+    "source": "alist-webhook"
+  }'
+```
+
+**场景 4：强制全量扫描**
+```bash
+curl -X POST http://localhost:8080/api/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "/aliyun/movies",
+    "mode": "full",
+    "event": "manual.trigger"
+  }'
+```
+
+#### 响应说明
+
+**成功触发**：
 ```json
 {
   "success": true,
@@ -385,10 +479,34 @@ curl -X POST http://localhost:8080/api/webhook \
 }
 ```
 
-**使用场景**：
-- Alist Webhook 通知文件上传
-- 下载器完成后自动触发
-- 自动化工作流集成
+**未匹配到配置（跳过）**：
+```json
+{
+  "success": true,
+  "skipped": true,
+  "message": "no matching mapping found"
+}
+```
+
+**错误响应**：
+```json
+{
+  "success": false,
+  "message": "config not found: Movies"
+}
+```
+
+#### 集成指南
+
+**Alist Webhook 集成**：
+- Alist 支持自定义 Webhook，在文件上传/删除时触发
+- 需要中间层脚本将 Alist 的通知转换为 OpenList-STRM 格式
+- 使用 `drive_path` 和 `alist_path` 进行路径映射
+
+**下载器集成**：
+- qBittorrent、Transmission 等下载器支持完成后脚本
+- 脚本调用 Webhook 接口，传递下载路径
+- 可指定 `config_name` 直接触发特定配置
 
 ### API 认证
 
