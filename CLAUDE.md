@@ -79,6 +79,7 @@
 ### 提交前检查（必须全部满足）
 - [ ] **代码格式化**：Go代码必须先运行 `gofmt -w .` 格式化（在 backend 目录下）
 - [ ] **编译通过**：`go build ./...` 必须无错误（在 backend 目录下）
+- [ ] **代码质量检查**：`golangci-lint run --timeout=5m` 必须无错误（在 backend 目录下）
 - [ ] **所有测试通过**：运行所有测试文件，确保100%通过
   - Go后端：`cd backend && go test -v -cover ./...`
   - Vue前端：`cd web && npm run build` 确保构建成功
@@ -87,9 +88,26 @@
 
 ⚠️ **重要**：
 - **Go代码格式化规范**：每次提交Go代码前必须在 backend 目录下运行 `gofmt -w .` 格式化所有文件！
+- **代码质量检查必须通过**：每次提交前必须在 backend 目录下运行 `golangci-lint run --timeout=5m` 确保无错误！
 - 必须先编译成功，确认无报错后才能提交！未编译通过的代码禁止提交！
 - **每次提交前必须运行所有相关测试**，确保所有测试用例都通过！
 - 修改任何代码后，都要运行对应的测试文件验证修改的正确性！
+
+### golangci-lint 安装
+
+```bash
+# 使用官方脚本安装 v1.64.8（与 GitHub CI 保持一致）
+mkdir -p ~/bin
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/bin v1.64.8
+
+# 验证安装
+~/bin/golangci-lint --version
+# 应输出: golangci-lint has version 1.64.8
+
+# 运行检查（在 backend 目录下）
+cd backend
+~/bin/golangci-lint run --timeout=5m
+```
 
 ---
 
