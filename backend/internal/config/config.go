@@ -7,12 +7,13 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Alist    AlistConfig    `mapstructure:"alist"`
-	API      APIConfig      `mapstructure:"api"`
-	Web      WebConfig      `mapstructure:"web"`
-	Log      LogConfig      `mapstructure:"log"`
-	Database DatabaseConfig `mapstructure:"database"`
+	Server      ServerConfig      `mapstructure:"server"`
+	Alist       AlistConfig       `mapstructure:"alist"`
+	API         APIConfig         `mapstructure:"api"`
+	Web         WebConfig         `mapstructure:"web"`
+	Log         LogConfig         `mapstructure:"log"`
+	Database    DatabaseConfig    `mapstructure:"database"`
+	MediaServer MediaServerConfig `mapstructure:"media_server"`
 }
 
 // ServerConfig represents server configuration
@@ -67,6 +68,22 @@ type LogConfig struct {
 // DatabaseConfig represents database configuration
 type DatabaseConfig struct {
 	Path string `mapstructure:"path"`
+}
+
+// MediaServerConfig represents media server notification configuration
+type MediaServerConfig struct {
+	Enabled  bool                `mapstructure:"enabled"`
+	Type     string              `mapstructure:"type"`
+	Emby     MediaServerInstance `mapstructure:"emby"`
+	Jellyfin MediaServerInstance `mapstructure:"jellyfin"`
+}
+
+// MediaServerInstance represents a single media server instance configuration
+type MediaServerInstance struct {
+	URL         string            `mapstructure:"url"`
+	APIKey      string            `mapstructure:"api_key"`
+	ScanMode    string            `mapstructure:"scan_mode"`
+	PathMapping map[string]string `mapstructure:"path_mapping"`
 }
 
 // Validate validates the configuration

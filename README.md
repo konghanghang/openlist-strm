@@ -13,6 +13,7 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
 - 🌐 **Web UI**：现代化 Vue 3 界面，无需编辑配置文件
 - 🔌 **API 接口**：RESTful API，支持外部程序调用
 - 🎬 **MediaWarp 支持**：支持 302 重定向代理，优化播放体验
+- 🔔 **自动通知**：支持 Emby/Jellyfin 自动扫描，无缝更新媒体库
 
 ## 📋 当前版本
 
@@ -31,6 +32,7 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
 - ✅ **Webhook 支持**（自动触发任务）
 - ✅ **Docker 部署**
 - ✅ **MediaWarp 集成支持**
+- ✅ **媒体服务器通知**（支持 Emby/Jellyfin 自动扫描）
 
 待实现功能（后续版本）：
 - ⏳ 元数据下载
@@ -193,6 +195,109 @@ web:
   enabled: true
   username: "admin"      # 保留字段，当前版本未使用
   password: "admin123"   # 保留字段，当前版本未使用
+```
+
+### 媒体服务器通知配置
+
+OpenList-STRM 支持在生成 STRM 文件后自动通知 Emby 或 Jellyfin 扫描媒体库，实现自动更新媒体库内容。
+
+```yaml
+media_server:
+  enabled: false  # 是否启用媒体服务器通知
+  type: "emby"    # 媒体服务器类型: emby, jellyfin, both
+
+  # Emby 配置
+  emby:
+    url: "http://emby:8096"        # Emby 服务器地址
+    api_key: "your-emby-api-key"   # Emby API Key
+    scan_mode: "full"              # 扫描模式: full=全库扫描, path=路径扫描
+    # 路径映射配置（仅在 scan_mode=path 时需要）
+    path_mapping:
+      # OpenList-STRM 容器路径 -> Emby 容器路径
+      # "/data/strm": "/media/movies"
+
+  # Jellyfin 配置
+  jellyfin:
+    url: "http://jellyfin:8096"        # Jellyfin 服务器地址
+    api_key: "your-jellyfin-api-key"   # Jellyfin API Key
+    scan_mode: "full"                  # 扫描模式: full=全库扫描, path=路径扫描
+    # 路径映射配置（仅在 scan_mode=path 时需要）
+    path_mapping:
+      # OpenList-STRM 容器路径 -> Jellyfin 容器路径
+      # "/data/strm": "/media/movies"
+```
+
+**配置说明**：
+
+| 参数 | 说明 | 可选值 |
+|------|------|--------|
+| `enabled` | 是否启用通知功能 | `true` / `false` |
+| `type` | 媒体服务器类型 | `emby` / `jellyfin` / `both` |
+| `url` | 媒体服务器地址 | 如：`http://emby:8096` |
+| `api_key` | API 密钥 | 在媒体服务器设置中获取 |
+| `scan_mode` | 扫描模式 | `full` / `path` |
+| `path_mapping` | 路径映射（可选） | 仅在 `path` 模式时需要 |
+
+**扫描模式说明**：
+
+1. **全局扫描模式（full）** - 推荐
+   - 触发完整媒体库扫描
+   - 配置简单，无需路径映射
+   - 适合大多数场景
+   - 缺点：扫描时间较长
+
+2. **路径扫描模式（path）** - 高级
+   - 仅扫描 STRM 文件所在路径
+   - 需要配置路径映射
+   - 扫描速度快，资源占用小
+   - 要求：OpenList-STRM 和媒体服务器的路径映射必须一致
+
+**路径映射示例**：
+
+```yaml
+# 场景：Docker 容器间路径不一致
+# OpenList-STRM 容器:  /data/strm/Movies
+# Emby 容器:          /media/Movies
+
+media_server:
+  enabled: true
+  type: "emby"
+  emby:
+    url: "http://emby:8096"
+    api_key: "your-api-key"
+    scan_mode: "path"
+    path_mapping:
+      "/data/strm": "/media"  # 将 /data/strm 映射为 /media
+```
+
+**获取 API Key**：
+
+- **Emby**：设置 → 高级 → API 密钥 → 新建应用程序
+- **Jellyfin**：设置 → API 密钥 → 添加 API 密钥
+
+**通知触发条件**：
+
+- 仅在有文件创建或删除时触发通知
+- 如果任务没有变更文件，则跳过通知
+- 通知失败不影响任务完成状态，仅记录日志
+
+**Docker Compose 配置示例**：
+
+```yaml
+services:
+  openlist-strm:
+    image: konghanghang/openlist-strm:master
+    volumes:
+      - ./strm:/data/strm
+    environment:
+      - TZ=Asia/Shanghai
+
+  emby:
+    image: emby/embyserver
+    volumes:
+      - ./strm:/media  # 注意：路径要与 path_mapping 对应
+    environment:
+      - TZ=Asia/Shanghai
 ```
 
 ## 🛠️ 构建

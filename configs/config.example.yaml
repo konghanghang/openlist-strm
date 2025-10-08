@@ -41,3 +41,28 @@ log:
 # Database configuration
 database:
   path: "./data/openlist-strm.db"
+
+# Media Server Notification
+media_server:
+  enabled: false  # 是否启用媒体服务器通知
+  type: "emby"  # 媒体服务器类型: emby, jellyfin, both
+
+  # Emby 配置
+  emby:
+    url: ""  # Emby 服务器地址，例如: http://emby:8096
+    api_key: ""  # Emby API Key
+    scan_mode: "full"  # 扫描模式: full=全库扫描, path=路径扫描
+    # 路径映射配置（仅在 scan_mode=path 时需要）
+    path_mapping:
+      # OpenList-STRM 容器路径 -> Emby 容器路径
+      # "/data/strm": "/media/movies"
+
+  # Jellyfin 配置
+  jellyfin:
+    url: ""  # Jellyfin 服务器地址，例如: http://jellyfin:8096
+    api_key: ""  # Jellyfin API Key
+    scan_mode: "full"  # 扫描模式: full=全库扫描, path=路径扫描
+    # 路径映射配置（仅在 scan_mode=path 时需要）
+    path_mapping:
+      # OpenList-STRM 容器路径 -> Jellyfin 容器路径
+      # "/data/strm": "/media/movies"
