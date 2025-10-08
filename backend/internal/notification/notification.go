@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/konghanghang/openlist-strm/internal/config"
@@ -126,7 +127,11 @@ func (n *MediaServerNotifier) notifyEmby(ctx context.Context, strmPath string) e
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("[Emby] WARNING: Failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("emby returned status code: %d", resp.StatusCode)
@@ -187,7 +192,11 @@ func (n *MediaServerNotifier) notifyJellyfin(ctx context.Context, strmPath strin
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("[Jellyfin] WARNING: Failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("jellyfin returned status code: %d", resp.StatusCode)
@@ -208,12 +217,17 @@ func (n *MediaServerNotifier) mapPath(strmPath string, mapping map[string]string
 
 	for srcPath, dstPath := range mapping {
 		srcPath = filepath.Clean(srcPath)
-		// 检查是否匹配
-		if len(srcPath) > len(bestMatch) && (strmPath == srcPath || filepath.HasPrefix(strmPath, srcPath+string(filepath.Separator))) {
-			bestMatch = srcPath
-			// 替换路径前缀
-			relPath := strmPath[len(srcPath):]
-			mappedPath = filepath.Join(dstPath, relPath)
+		// 检查是否匹配（精确匹配或前缀匹配）
+		if len(srcPath) > len(bestMatch) {
+			if strmPath == srcPath {
+				bestMatch = srcPath
+				mappedPath = dstPath
+			} else if strings.HasPrefix(strmPath, srcPath+string(filepath.Separator)) {
+				bestMatch = srcPath
+				// 替换路径前缀
+				relPath := strmPath[len(srcPath):]
+				mappedPath = filepath.Join(dstPath, relPath)
+			}
 		}
 	}
 

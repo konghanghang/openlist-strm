@@ -309,7 +309,7 @@ func matchPath(filePath, sourcePath string) bool {
 	if strings.HasPrefix(filePath, sourcePath) {
 		rest := filePath[len(sourcePath):]
 		// 必须是路径分隔符开头，避免 /media/movies-hd 匹配 /media/movies
-		return len(rest) > 0 && rest[0] == filepath.Separator
+		return len(rest) > 0 && rest[0] == byte(filepath.Separator)
 	}
 
 	return false
