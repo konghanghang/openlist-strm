@@ -14,6 +14,7 @@ import (
 	"github.com/konghanghang/openlist-strm/internal/alist"
 	"github.com/konghanghang/openlist-strm/internal/config"
 	"github.com/konghanghang/openlist-strm/internal/contextkeys"
+	"github.com/konghanghang/openlist-strm/internal/notification"
 	"github.com/konghanghang/openlist-strm/internal/storage"
 	"github.com/konghanghang/openlist-strm/internal/strm"
 )
@@ -27,6 +28,7 @@ type Scheduler struct {
 	cron        *cron.Cron
 	cronJobs    map[uint]cron.EntryID // mapping ID -> cron entry ID
 	mu          sync.RWMutex          // protect cronJobs map
+	notifier    *notification.MediaServerNotifier
 }
 
 // New creates a new scheduler
@@ -38,6 +40,7 @@ func New(cfg *config.Config, alistClient *alist.Client, generator *strm.Generato
 		db:          db,
 		cron:        cron.New(cron.WithSeconds()), // Support second-level cron expressions
 		cronJobs:    make(map[uint]cron.EntryID),
+		notifier:    notification.NewMediaServerNotifier(&cfg.MediaServer),
 	}
 }
 
@@ -207,6 +210,17 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 
 	log.Printf("[TraceID: %s] Task COMPLETED: created=%d, deleted=%d, skipped=%d, errors=%d, duration=%v",
 		traceID, result.FilesCreated, result.FilesDeleted, result.FilesSkipped, len(result.Errors), duration)
+
+	// 通知媒体服务器扫描库
+	if result.FilesCreated > 0 || result.FilesDeleted > 0 {
+		log.Printf("[TraceID: %s] Notifying media server to scan library (target: %s)", traceID, mapping.Target)
+		if err := s.notifier.NotifyLibraryScan(ctx, mapping.Target); err != nil {
+			log.Printf("[TraceID: %s] WARNING: Failed to notify media server: %v", traceID, err)
+			// 不影响任务完成状态，仅记录日志
+		}
+	} else {
+		log.Printf("[TraceID: %s] No files created or deleted, skipping media server notification", traceID)
+	}
 
 	return nil
 }
