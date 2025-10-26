@@ -101,7 +101,7 @@ func TestListFiles_Success(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, "test-token", false, 30)
-	files, err := client.ListFiles(context.Background(), "/movies")
+	files, err := client.ListFiles(context.Background(), "/movies", false)
 	if err != nil {
 		t.Fatalf("ListFiles() error = %v", err)
 	}
@@ -129,7 +129,7 @@ func TestListFiles_EmptyDirectory(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, "test-token", false, 30)
-	files, err := client.ListFiles(context.Background(), "/empty")
+	files, err := client.ListFiles(context.Background(), "/empty", false)
 	if err != nil {
 		t.Fatalf("ListFiles() error = %v", err)
 	}
@@ -151,7 +151,7 @@ func TestListFiles_APIError(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, "test-token", false, 30)
-	_, err := client.ListFiles(context.Background(), "/movies")
+	_, err := client.ListFiles(context.Background(), "/movies", false)
 	if err == nil {
 		t.Error("ListFiles() expected error for API error, got nil")
 	}
@@ -209,7 +209,7 @@ func TestListFilesRecursive_Success(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, "test-token", false, 30)
-	files, err := client.ListFilesRecursive(context.Background(), "/movies", []string{"mp4", "mkv"})
+	files, err := client.ListFilesRecursive(context.Background(), "/movies", []string{"mp4", "mkv"}, false)
 	if err != nil {
 		t.Fatalf("ListFilesRecursive() error = %v", err)
 	}
@@ -251,7 +251,7 @@ func TestListFilesRecursive_FilterByExtension(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, "test-token", false, 30)
-	files, err := client.ListFilesRecursive(context.Background(), "/media", []string{"mp4", "mkv"})
+	files, err := client.ListFilesRecursive(context.Background(), "/media", []string{"mp4", "mkv"}, false)
 	if err != nil {
 		t.Fatalf("ListFilesRecursive() error = %v", err)
 	}
@@ -498,7 +498,7 @@ func TestHTTP_ErrorResponse(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, "test-token", false, 30)
-	_, err := client.ListFiles(context.Background(), "/movies")
+	_, err := client.ListFiles(context.Background(), "/movies", false)
 	if err == nil {
 		t.Error("ListFiles() expected error for HTTP error, got nil")
 	}

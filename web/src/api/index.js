@@ -75,5 +75,10 @@ export default {
   // Get system status
   getStatus() {
     return api.get('/status')
+  },
+
+  // Manual notification to media server
+  notifyMediaServer(id, data = {}) {
+    return api.post(`/notify/${id}`, data)
   }
 }

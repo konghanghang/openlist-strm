@@ -72,6 +72,9 @@ func (s *Server) setupRoutes() {
 		api.DELETE("/configs/:id", s.handleDeleteMapping)
 		api.GET("/status", s.handleGetStatus)
 
+		// Notification routes
+		api.POST("/notify/:id", s.handleNotify)
+
 		// Webhook routes
 		api.POST("/webhook", s.handleWebhook)
 	}

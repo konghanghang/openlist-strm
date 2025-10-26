@@ -16,7 +16,7 @@ import (
 // AlistClient is an interface for Alist operations
 type AlistClient interface {
 	Ping(ctx context.Context) error
-	ListFilesRecursive(ctx context.Context, dirPath string, extensions []string) ([]alist.FileItem, error)
+	ListFilesRecursive(ctx context.Context, dirPath string, extensions []string, refresh bool) ([]alist.FileItem, error)
 	GetFileURL(ctx context.Context, filePath string) (string, error)
 }
 
@@ -34,12 +34,13 @@ func NewGenerator(alistClient AlistClient) *Generator {
 
 // GenerateOptions represents options for generating STRM files
 type GenerateOptions struct {
-	SourcePath string
-	TargetPath string
-	Extensions []string
-	Concurrent int    // concurrent for this task
-	Mode       string // incremental or full
-	STRMMode   string // alist_path or http_url
+	SourcePath   string
+	TargetPath   string
+	Extensions   []string
+	Concurrent   int    // concurrent for this task
+	Mode         string // incremental or full
+	STRMMode     string // alist_path or http_url
+	ForceRefresh bool   // force refresh Alist cache
 }
 
 // GenerateResult represents the result of generation
@@ -73,8 +74,12 @@ func (g *Generator) Generate(ctx context.Context, opts GenerateOptions) (*Genera
 	}
 
 	// List all video files from Alist
-	log.Printf("[TraceID: %s] Scanning source directory: %s", traceID, opts.SourcePath)
-	files, err := g.alistClient.ListFilesRecursive(ctx, opts.SourcePath, opts.Extensions)
+	refreshMsg := ""
+	if opts.ForceRefresh {
+		refreshMsg = " (force refresh)"
+	}
+	log.Printf("[TraceID: %s] Scanning source directory: %s%s", traceID, opts.SourcePath, refreshMsg)
+	files, err := g.alistClient.ListFilesRecursive(ctx, opts.SourcePath, opts.Extensions, opts.ForceRefresh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list files: %w", err)
 	}

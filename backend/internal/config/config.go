@@ -32,15 +32,16 @@ type AlistConfig struct {
 
 // MappingConfig represents path mapping configuration (internal use, not from YAML)
 type MappingConfig struct {
-	Name       string
-	Source     string
-	Target     string
-	Extensions []string
-	Concurrent int
-	Mode       string
-	STRMMode   string
-	Enabled    bool
-	CronExpr   string
+	Name         string
+	Source       string
+	Target       string
+	Extensions   []string
+	Concurrent   int
+	Mode         string
+	STRMMode     string
+	ForceRefresh bool
+	Enabled      bool
+	CronExpr     string
 }
 
 // APIConfig represents API configuration

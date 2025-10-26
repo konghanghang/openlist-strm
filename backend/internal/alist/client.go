@@ -35,10 +35,10 @@ func NewClient(baseURL, token string, signEnable bool, timeout time.Duration) *C
 }
 
 // ListFiles lists files in the specified path
-func (c *Client) ListFiles(ctx context.Context, dirPath string) ([]FileItem, error) {
+func (c *Client) ListFiles(ctx context.Context, dirPath string, refresh bool) ([]FileItem, error) {
 	req := ListRequest{
 		Path:    dirPath,
-		Refresh: false,
+		Refresh: refresh,
 	}
 
 	var resp ListResponse
@@ -58,10 +58,10 @@ func (c *Client) ListFiles(ctx context.Context, dirPath string) ([]FileItem, err
 }
 
 // ListFilesRecursive lists all files recursively
-func (c *Client) ListFilesRecursive(ctx context.Context, dirPath string, extensions []string) ([]FileItem, error) {
+func (c *Client) ListFilesRecursive(ctx context.Context, dirPath string, extensions []string, refresh bool) ([]FileItem, error) {
 	var result []FileItem
 
-	if err := c.listFilesRecursiveHelper(ctx, dirPath, extensions, &result); err != nil {
+	if err := c.listFilesRecursiveHelper(ctx, dirPath, extensions, refresh, &result); err != nil {
 		return nil, err
 	}
 
@@ -69,8 +69,8 @@ func (c *Client) ListFilesRecursive(ctx context.Context, dirPath string, extensi
 }
 
 // listFilesRecursiveHelper is a helper function for recursive listing
-func (c *Client) listFilesRecursiveHelper(ctx context.Context, dirPath string, extensions []string, result *[]FileItem) error {
-	files, err := c.ListFiles(ctx, dirPath)
+func (c *Client) listFilesRecursiveHelper(ctx context.Context, dirPath string, extensions []string, refresh bool, result *[]FileItem) error {
+	files, err := c.ListFiles(ctx, dirPath, refresh)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (c *Client) listFilesRecursiveHelper(ctx context.Context, dirPath string, e
 		if file.IsDir {
 			// Recursively list subdirectory
 			subPath := path.Join(dirPath, file.Name)
-			if err := c.listFilesRecursiveHelper(ctx, subPath, extensions, result); err != nil {
+			if err := c.listFilesRecursiveHelper(ctx, subPath, extensions, refresh, result); err != nil {
 				return err
 			}
 		} else if file.IsVideo(extensions) {

@@ -79,7 +79,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="250">
+        <el-table-column label="操作" width="320">
           <template #default="scope">
             <el-button
               type="primary"
@@ -89,6 +89,14 @@
               :loading="generatingMap[scope.row.name]"
             >
               生成
+            </el-button>
+            <el-button
+              type="success"
+              size="small"
+              @click="handleNotify(scope.row)"
+              :loading="notifyingMap[scope.row.id]"
+            >
+              通知
             </el-button>
             <el-button
               type="warning"
@@ -178,6 +186,13 @@
             <el-radio value="alist_path">Alist路径（配合MediaWarp使用）</el-radio>
             <el-radio value="http_url">直链URL（直接播放）</el-radio>
           </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="强制刷新">
+          <el-switch v-model="formData.force_refresh" />
+          <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+            启用后每次扫描都会强制刷新 Alist 缓存，获取最新文件列表（可能影响性能）
+          </div>
         </el-form-item>
 
         <el-form-item label="定时任务" prop="cron_expr">
@@ -326,6 +341,7 @@ const configs = ref([])
 const loading = ref(false)
 const generating = ref(false)
 const generatingMap = reactive({})
+const notifyingMap = reactive({})
 const dialogVisible = ref(false)
 const dialogMode = ref('add') // 'add' or 'edit'
 const submitting = ref(false)
@@ -340,6 +356,7 @@ const formData = reactive({
   concurrent: 3,
   mode: 'incremental',
   strm_mode: 'alist_path',
+  force_refresh: false,
   cron_expr: '',
   enabled: true
 })
@@ -408,6 +425,7 @@ const showEditDialog = (config) => {
   formData.concurrent = config.concurrent || 10
   formData.mode = config.mode
   formData.strm_mode = config.strm_mode || 'alist_path'
+  formData.force_refresh = config.force_refresh || false
   formData.cron_expr = config.cron_expr || ''
   formData.enabled = config.enabled
   parseCronExpr(config.cron_expr || '')
@@ -620,6 +638,7 @@ const resetForm = () => {
   formData.concurrent = 3
   formData.mode = 'incremental'
   formData.strm_mode = 'alist_path'
+  formData.force_refresh = false
   formData.cron_expr = ''
   formData.enabled = true
 
@@ -659,6 +678,7 @@ const handleSubmit = async () => {
       concurrent: formData.concurrent,
       mode: formData.mode,
       strm_mode: formData.strm_mode,
+      force_refresh: formData.force_refresh,
       cron_expr: formData.cron_expr,
       enabled: formData.enabled
     }
@@ -732,6 +752,20 @@ const handleGenerateAll = async () => {
     ElMessage.error('启动任务失败')
   } finally {
     generating.value = false
+  }
+}
+
+const handleNotify = async (config) => {
+  notifyingMap[config.id] = true
+
+  try {
+    const result = await api.notifyMediaServer(config.id)
+    ElMessage.success(`通知已发送：${result.message}`)
+  } catch (error) {
+    console.error('Failed to notify media server:', error)
+    ElMessage.error('发送通知失败')
+  } finally {
+    notifyingMap[config.id] = false
   }
 }
 

@@ -214,16 +214,17 @@ func (s *Server) handleGetConfigs(c *gin.Context) {
 	var configs []MappingResponse
 	for _, m := range mappings {
 		configs = append(configs, MappingResponse{
-			ID:         m.ID,
-			Name:       m.Name,
-			Source:     m.Source,
-			Target:     m.Target,
-			Extensions: strings.Split(m.Extensions, ","),
-			Concurrent: m.Concurrent,
-			Mode:       m.Mode,
-			STRMMode:   m.STRMMode,
-			CronExpr:   m.CronExpr,
-			Enabled:    m.Enabled,
+			ID:           m.ID,
+			Name:         m.Name,
+			Source:       m.Source,
+			Target:       m.Target,
+			Extensions:   strings.Split(m.Extensions, ","),
+			Concurrent:   m.Concurrent,
+			Mode:         m.Mode,
+			STRMMode:     m.STRMMode,
+			ForceRefresh: m.ForceRefresh,
+			CronExpr:     m.CronExpr,
+			Enabled:      m.Enabled,
 		})
 	}
 
@@ -437,29 +438,31 @@ func (s *Server) handleWebhook(c *gin.Context) {
 
 // MappingRequest represents a mapping create/update request
 type MappingRequest struct {
-	Name       string   `json:"name" binding:"required"`
-	Source     string   `json:"source" binding:"required"`
-	Target     string   `json:"target" binding:"required"`
-	Extensions []string `json:"extensions" binding:"required"`
-	Concurrent int      `json:"concurrent"`
-	Mode       string   `json:"mode"`
-	STRMMode   string   `json:"strm_mode"`
-	CronExpr   string   `json:"cron_expr"`
-	Enabled    *bool    `json:"enabled"`
+	Name         string   `json:"name" binding:"required"`
+	Source       string   `json:"source" binding:"required"`
+	Target       string   `json:"target" binding:"required"`
+	Extensions   []string `json:"extensions" binding:"required"`
+	Concurrent   int      `json:"concurrent"`
+	Mode         string   `json:"mode"`
+	STRMMode     string   `json:"strm_mode"`
+	ForceRefresh *bool    `json:"force_refresh"`
+	CronExpr     string   `json:"cron_expr"`
+	Enabled      *bool    `json:"enabled"`
 }
 
 // MappingResponse represents a mapping response
 type MappingResponse struct {
-	ID         uint     `json:"id"`
-	Name       string   `json:"name"`
-	Source     string   `json:"source"`
-	Target     string   `json:"target"`
-	Extensions []string `json:"extensions"`
-	Concurrent int      `json:"concurrent"`
-	Mode       string   `json:"mode"`
-	STRMMode   string   `json:"strm_mode"`
-	CronExpr   string   `json:"cron_expr"`
-	Enabled    bool     `json:"enabled"`
+	ID           uint     `json:"id"`
+	Name         string   `json:"name"`
+	Source       string   `json:"source"`
+	Target       string   `json:"target"`
+	Extensions   []string `json:"extensions"`
+	Concurrent   int      `json:"concurrent"`
+	Mode         string   `json:"mode"`
+	STRMMode     string   `json:"strm_mode"`
+	ForceRefresh bool     `json:"force_refresh"`
+	CronExpr     string   `json:"cron_expr"`
+	Enabled      bool     `json:"enabled"`
 }
 
 // handleCreateMapping handles creating a new mapping
@@ -484,6 +487,10 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
+	forceRefresh := false
+	if req.ForceRefresh != nil {
+		forceRefresh = *req.ForceRefresh
+	}
 
 	// Validate mode
 	if req.Mode != "incremental" && req.Mode != "full" {
@@ -506,15 +513,16 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 	}
 
 	mapping := &storage.Mapping{
-		Name:       req.Name,
-		Source:     req.Source,
-		Target:     req.Target,
-		Extensions: strings.Join(req.Extensions, ","),
-		Concurrent: req.Concurrent,
-		Mode:       req.Mode,
-		STRMMode:   req.STRMMode,
-		CronExpr:   req.CronExpr,
-		Enabled:    enabled,
+		Name:         req.Name,
+		Source:       req.Source,
+		Target:       req.Target,
+		Extensions:   strings.Join(req.Extensions, ","),
+		Concurrent:   req.Concurrent,
+		Mode:         req.Mode,
+		STRMMode:     req.STRMMode,
+		ForceRefresh: forceRefresh,
+		CronExpr:     req.CronExpr,
+		Enabled:      enabled,
 	}
 
 	if err := s.db.CreateMapping(mapping); err != nil {
@@ -531,16 +539,17 @@ func (s *Server) handleCreateMapping(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, MappingResponse{
-		ID:         mapping.ID,
-		Name:       mapping.Name,
-		Source:     mapping.Source,
-		Target:     mapping.Target,
-		Extensions: req.Extensions,
-		Concurrent: mapping.Concurrent,
-		Mode:       mapping.Mode,
-		STRMMode:   mapping.STRMMode,
-		CronExpr:   mapping.CronExpr,
-		Enabled:    mapping.Enabled,
+		ID:           mapping.ID,
+		Name:         mapping.Name,
+		Source:       mapping.Source,
+		Target:       mapping.Target,
+		Extensions:   req.Extensions,
+		Concurrent:   mapping.Concurrent,
+		Mode:         mapping.Mode,
+		STRMMode:     mapping.STRMMode,
+		ForceRefresh: mapping.ForceRefresh,
+		CronExpr:     mapping.CronExpr,
+		Enabled:      mapping.Enabled,
 	})
 }
 
@@ -605,6 +614,9 @@ func (s *Server) handleUpdateMapping(c *gin.Context) {
 	if req.Enabled != nil {
 		existing.Enabled = *req.Enabled
 	}
+	if req.ForceRefresh != nil {
+		existing.ForceRefresh = *req.ForceRefresh
+	}
 
 	if err := s.db.UpdateMapping(existing); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update mapping"})
@@ -618,16 +630,17 @@ func (s *Server) handleUpdateMapping(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, MappingResponse{
-		ID:         existing.ID,
-		Name:       existing.Name,
-		Source:     existing.Source,
-		Target:     existing.Target,
-		Extensions: strings.Split(existing.Extensions, ","),
-		Concurrent: existing.Concurrent,
-		Mode:       existing.Mode,
-		STRMMode:   existing.STRMMode,
-		CronExpr:   existing.CronExpr,
-		Enabled:    existing.Enabled,
+		ID:           existing.ID,
+		Name:         existing.Name,
+		Source:       existing.Source,
+		Target:       existing.Target,
+		Extensions:   strings.Split(existing.Extensions, ","),
+		Concurrent:   existing.Concurrent,
+		Mode:         existing.Mode,
+		STRMMode:     existing.STRMMode,
+		ForceRefresh: existing.ForceRefresh,
+		CronExpr:     existing.CronExpr,
+		Enabled:      existing.Enabled,
 	})
 }
 
@@ -649,4 +662,53 @@ func (s *Server) handleDeleteMapping(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "mapping deleted successfully"})
+}
+
+// NotifyRequest represents a manual notification request
+type NotifyRequest struct {
+	Path string `json:"path"` // Optional: specific path to scan
+}
+
+// handleNotify handles manual media server notification
+func (s *Server) handleNotify(c *gin.Context) {
+	id := c.Param("id")
+	var mappingID uint
+	if _, err := fmt.Sscanf(id, "%d", &mappingID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid mapping id"})
+		return
+	}
+
+	// Get mapping by ID
+	mapping, err := s.db.GetMappingByID(mappingID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "mapping not found"})
+		return
+	}
+
+	// Parse request body (optional)
+	var req NotifyRequest
+	_ = c.ShouldBindJSON(&req)
+
+	// Determine scan path (default to mapping target path)
+	scanPath := mapping.Target
+	if req.Path != "" {
+		scanPath = req.Path
+	}
+
+	// Trigger notification in background
+	go func() {
+		ctx := context.Background()
+		log.Printf("[Notify] Manual notification triggered for config: %s, path: %s", mapping.Name, scanPath)
+		if err := s.scheduler.NotifyMediaServer(ctx, scanPath); err != nil {
+			log.Printf("[Notify] ERROR: Manual notification failed for config %s: %v", mapping.Name, err)
+		} else {
+			log.Printf("[Notify] ✅ Manual notification sent successfully for config: %s", mapping.Name)
+		}
+	}()
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "notification triggered",
+		"config":  mapping.Name,
+		"path":    scanPath,
+	})
 }

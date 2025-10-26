@@ -119,14 +119,15 @@ func (s *Scheduler) RunAll(ctx context.Context) error {
 		}
 
 		mappingConfig := config.MappingConfig{
-			Name:       mapping.Name,
-			Source:     mapping.Source,
-			Target:     mapping.Target,
-			Extensions: extensions,
-			Concurrent: mapping.Concurrent,
-			Mode:       mapping.Mode,
-			STRMMode:   mapping.STRMMode,
-			Enabled:    mapping.Enabled,
+			Name:         mapping.Name,
+			Source:       mapping.Source,
+			Target:       mapping.Target,
+			Extensions:   extensions,
+			Concurrent:   mapping.Concurrent,
+			Mode:         mapping.Mode,
+			STRMMode:     mapping.STRMMode,
+			ForceRefresh: mapping.ForceRefresh,
+			Enabled:      mapping.Enabled,
 		}
 
 		if err := s.RunMapping(ctx, mappingConfig); err != nil {
@@ -167,12 +168,13 @@ func (s *Scheduler) RunMapping(ctx context.Context, mapping config.MappingConfig
 
 	// Generate STRM files (context now contains trace_id)
 	result, err := s.generator.Generate(ctx, strm.GenerateOptions{
-		SourcePath: mapping.Source,
-		TargetPath: mapping.Target,
-		Extensions: mapping.Extensions,
-		Concurrent: mapping.Concurrent,
-		Mode:       mapping.Mode,
-		STRMMode:   mapping.STRMMode,
+		SourcePath:   mapping.Source,
+		TargetPath:   mapping.Target,
+		Extensions:   mapping.Extensions,
+		Concurrent:   mapping.Concurrent,
+		Mode:         mapping.Mode,
+		STRMMode:     mapping.STRMMode,
+		ForceRefresh: mapping.ForceRefresh,
 	})
 
 	// Update task record
@@ -239,14 +241,15 @@ func (s *Scheduler) RunMappingByName(ctx context.Context, name string) error {
 	}
 
 	mappingConfig := config.MappingConfig{
-		Name:       mapping.Name,
-		Source:     mapping.Source,
-		Target:     mapping.Target,
-		Extensions: extensions,
-		Concurrent: mapping.Concurrent,
-		Mode:       mapping.Mode,
-		STRMMode:   mapping.STRMMode,
-		Enabled:    mapping.Enabled,
+		Name:         mapping.Name,
+		Source:       mapping.Source,
+		Target:       mapping.Target,
+		Extensions:   extensions,
+		Concurrent:   mapping.Concurrent,
+		Mode:         mapping.Mode,
+		STRMMode:     mapping.STRMMode,
+		ForceRefresh: mapping.ForceRefresh,
+		Enabled:      mapping.Enabled,
 	}
 
 	return s.RunMapping(ctx, mappingConfig)
@@ -345,4 +348,9 @@ func (s *Scheduler) UpdateCronJob(mappingID uint, mappingName, cronExpr string, 
 	// Otherwise, add/update the job
 	log.Printf("[Scheduler] Updating cron job for mapping %s", mappingName)
 	return s.AddCronJob(mappingID, mappingName, cronExpr)
+}
+
+// NotifyMediaServer sends a manual notification to media server
+func (s *Scheduler) NotifyMediaServer(ctx context.Context, strmPath string) error {
+	return s.notifier.NotifyLibraryScan(ctx, strmPath)
 }
