@@ -31,14 +31,6 @@
       "Bash(coverage run:*)",
       "Bash(coverage report:*)",
 
-      "Bash(CONFIG_FILE=config.test.yaml python3 database/manage.py check)",
-      "Bash(CONFIG_FILE=config.test.yaml python3 database/manage.py tables)",
-      "Bash(CONFIG_FILE=config.test.yaml python3 database/manage.py init)",
-      "Bash(CONFIG_FILE=config.test.yaml python3 database/manage.py status)",
-
-      "Bash(CONFIG_FILE=config.test.yaml python3 -c \"import config;from crawler.database import DatabaseManager;from notifier.email_notifier import EmailNotifier;print('🔧 配置系统完整性测试')\")",
-      "Bash(CONFIG_FILE=config.test.yaml python3 -c \"import asyncio;from crawler.database import DatabaseManager;import config;async def test_save_resource(): pass;asyncio.run(test_save_resource())\")",
-
       "Bash(pipenv install:*)",
       "Bash(pipenv run:*)",
       "Bash(poetry install:*)",
@@ -90,7 +82,5 @@
     "PYTHONUNBUFFERED": "1",
     "ENV": "development",
     "GO_ENV": "test"
-  },
-
-  "outputStyle": "中文，详细解释，使用 Markdown 结构化格式"
+  }
 }
