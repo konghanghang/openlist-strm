@@ -779,5 +779,223 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 400;
+  color: var(--color-text);
+  font-family: 'Varela Round', sans-serif;
+}
+
+/* 卡片 - Glassmorphism */
+:deep(.el-card) {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 24px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-card:hover) {
+  box-shadow: 0 12px 48px rgba(var(--color-primary-rgb), 0.18);
+}
+
+:deep(.el-card__header) {
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+:deep(.el-card__body) {
+  padding: 24px;
+}
+
+/* 表格 */
+:deep(.el-table) {
+  background: transparent;
+  font-size: 14px;
+}
+
+:deep(.el-table__row) {
+  transition: all 0.2s ease;
+}
+
+:deep(.el-table__row:hover) {
+  background-color: rgba(var(--color-primary-rgb), 0.05) !important;
+}
+
+:deep(.el-table th) {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+:deep(.el-table td) {
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
+}
+
+:deep(.el-table::before) {
+  display: none;
+}
+
+/* 路径文本 */
+:deep(.el-text) {
+  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  font-size: 12px;
+}
+
+/* 按钮 */
+:deep(.el-button) {
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+:deep(.el-button:hover) {
+  transform: translateY(-2px);
+}
+
+:deep(.el-button:active) {
+  transform: translateY(0);
+}
+
+:deep(.el-button--primary) {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+
+:deep(.el-button--primary:hover) {
+  box-shadow: 0 8px 20px rgba(var(--color-primary-rgb), 0.4);
+}
+
+:deep(.el-button--success) {
+  background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+:deep(.el-button--success:hover) {
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
+:deep(.el-button--warning) {
+  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+:deep(.el-button--danger) {
+  background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* 标签 */
+:deep(.el-tag) {
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  padding: 4px 12px;
+}
+
+/* 对话框 - Glassmorphism */
+:deep(.el-dialog) {
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(var(--color-primary-rgb), 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+:deep(.el-dialog__header) {
+  background: rgba(var(--color-primary-rgb), 0.06);
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  padding: 24px;
+}
+
+:deep(.el-dialog__title) {
+  color: var(--color-text);
+  font-weight: 400;
+  font-family: 'Varela Round', sans-serif;
+  font-size: 18px;
+}
+
+:deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  background: rgba(var(--color-primary-rgb), 0.03);
+}
+
+/* 表单 */
+:deep(.el-form-item__label) {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+:deep(.el-input__wrapper) {
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.15) inset;
+  transition: all 0.2s ease;
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.3) inset;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.4) inset;
+}
+
+:deep(.el-input__inner) {
+  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  font-size: 13px;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  border-radius: 12px;
+}
+
+:deep(.el-input-number) {
+  border-radius: 12px;
+}
+
+:deep(.el-radio__label) {
+  font-weight: 400;
+  color: #475569;
+}
+
+:deep(.el-radio__input.is-checked + .el-radio__label) {
+  color: var(--color-primary);
+}
+
+:deep(.el-radio__input.is-checked .el-radio__inner) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+:deep(.el-switch.is-checked .el-switch__core) {
+  background-color: var(--color-primary);
+}
+
+/* 空状态 */
+:deep(.el-alert) {
+  border: 1px solid rgba(var(--color-primary-rgb), 0.15);
+  background: rgba(var(--color-primary-rgb), 0.05);
+  border-radius: 16px;
+}
+
+:deep(.el-alert__title) {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+:deep(.el-alert__description) {
+  color: #64748B;
 }
 </style>

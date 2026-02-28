@@ -4,7 +4,7 @@
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-content">
-            <el-icon class="stat-icon" color="#E6A23C"><Setting /></el-icon>
+            <el-icon class="stat-icon" :style="{ color: 'var(--color-primary)' }"><Setting /></el-icon>
             <div class="stat-info">
               <div class="stat-value">{{ stats.configCount }}</div>
               <div class="stat-label">配置数量</div>
@@ -16,7 +16,7 @@
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-content">
-            <el-icon class="stat-icon" color="#67C23A"><List /></el-icon>
+            <el-icon class="stat-icon" :style="{ color: 'var(--color-cta)' }"><List /></el-icon>
             <div class="stat-info">
               <div class="stat-value">{{ stats.taskCount }}</div>
               <div class="stat-label">总任务数</div>
@@ -28,7 +28,7 @@
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-content">
-            <el-icon class="stat-icon" color="#909399"><InfoFilled /></el-icon>
+            <el-icon class="stat-icon" :style="{ color: 'var(--color-secondary)' }"><InfoFilled /></el-icon>
             <div class="stat-info">
               <div class="stat-value">{{ systemInfo.version }}</div>
               <div class="stat-label">系统版本</div>
@@ -40,7 +40,7 @@
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-content">
-            <el-icon class="stat-icon" color="#409EFF"><Odometer /></el-icon>
+            <el-icon class="stat-icon" :style="{ color: 'var(--color-primary)' }"><Odometer /></el-icon>
             <div class="stat-info">
               <div class="stat-value">{{ stats.uptime }}</div>
               <div class="stat-label">运行时间</div>
@@ -234,22 +234,34 @@ onUnmounted(() => {
 <style scoped>
 .stat-card {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 24px;
+  overflow: hidden;
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: scale(1.02) translateY(-4px);
+  box-shadow: 0 16px 48px rgba(var(--color-primary-rgb), 0.2);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .stat-content {
   display: flex;
   align-items: center;
+  gap: 20px;
+  padding: 8px;
 }
 
 .stat-icon {
   font-size: 48px;
-  margin-right: 20px;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 8px rgba(var(--color-primary-rgb), 0.2));
 }
 
 .stat-info {
@@ -257,20 +269,28 @@ onUnmounted(() => {
 }
 
 .stat-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 36px;
+  font-weight: 400;
+  color: var(--color-text);
+  font-family: 'Varela Round', sans-serif;
+  line-height: 1.1;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #909399;
-  margin-top: 4px;
+  color: #64748B;
+  margin-top: 6px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .stat-extra {
-  font-size: 12px;
-  color: #C0C4CC;
+  font-size: 11px;
+  color: #94A3B8;
   margin-top: 4px;
 }
 
@@ -278,33 +298,113 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 400;
+  color: var(--color-text);
+  font-family: 'Varela Round', sans-serif;
 }
 
 .file-stats {
   display: flex;
-  gap: 12px;
+  gap: 20px;
 }
 
 .stat-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 12px;
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border-radius: 12px;
 }
 
-.info-item {
-  padding: 8px 0;
-  display: flex;
-  align-items: center;
+/* 表格行悬停效果 */
+:deep(.el-table__row) {
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.info-label {
-  color: #909399;
-  margin-right: 10px;
-  min-width: 80px;
+:deep(.el-table__row:hover) {
+  background-color: rgba(var(--color-primary-rgb), 0.05) !important;
+  transform: scale(1.005);
 }
 
-.info-value {
-  color: #303133;
-  font-weight: 500;
+/* 卡片样式优化 - Glassmorphism */
+:deep(.el-card) {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 24px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-card:hover) {
+  box-shadow: 0 12px 48px rgba(var(--color-primary-rgb), 0.18);
+  border-color: rgba(var(--color-primary-rgb), 0.3);
+}
+
+:deep(.el-card__header) {
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+:deep(.el-card__body) {
+  padding: 24px;
+}
+
+/* 表格样式 */
+:deep(.el-table) {
+  background: transparent;
+  font-size: 14px;
+}
+
+:deep(.el-table th) {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+:deep(.el-table td) {
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
+}
+
+:deep(.el-table::before) {
+  display: none;
+}
+
+/* 按钮优化 */
+:deep(.el-button) {
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+:deep(.el-button--text) {
+  color: var(--color-primary);
+}
+
+:deep(.el-button--text:hover) {
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
+}
+
+/* 标签优化 */
+:deep(.el-tag) {
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  padding: 4px 12px;
 }
 </style>

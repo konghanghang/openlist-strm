@@ -232,22 +232,175 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 400;
+  color: var(--color-text);
+  font-family: 'Varela Round', sans-serif;
 }
 
 .file-stats {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
 .stat-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 12px;
+  background: rgba(var(--color-primary-rgb), 0.08);
+  border-radius: 12px;
 }
 
 .pagination-container {
-  margin-top: 20px;
+  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
+}
+
+/* 卡片 - Glassmorphism */
+:deep(.el-card) {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 24px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-card:hover) {
+  box-shadow: 0 12px 48px rgba(var(--color-primary-rgb), 0.18);
+}
+
+:deep(.el-card__header) {
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+:deep(.el-card__body) {
+  padding: 24px;
+}
+
+/* 表格 */
+:deep(.el-table) {
+  background: transparent;
+  font-size: 14px;
+}
+
+:deep(.el-table__row) {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+:deep(.el-table__row:hover) {
+  background-color: rgba(var(--color-primary-rgb), 0.05) !important;
+}
+
+:deep(.el-table th) {
+  background: rgba(var(--color-primary-rgb), 0.08);
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+:deep(.el-table td) {
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
+}
+
+:deep(.el-table::before) {
+  display: none;
+}
+
+/* 任务ID */
+:deep(.el-text) {
+  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  font-size: 12px;
+}
+
+/* 按钮 */
+:deep(.el-button) {
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+:deep(.el-button--primary) {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+
+:deep(.el-button--primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(var(--color-primary-rgb), 0.4);
+}
+
+:deep(.el-button--text) {
+  color: var(--color-primary);
+}
+
+:deep(.el-button--text:hover) {
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
+}
+
+/* 标签 */
+:deep(.el-tag) {
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  padding: 4px 12px;
+}
+
+/* 分页器 */
+:deep(.el-pagination) {
+  font-weight: 600;
+}
+
+:deep(.el-pagination .el-pager li.is-active) {
+  background: var(--color-primary);
+  border-radius: 10px;
+}
+
+/* 对话框 - Glassmorphism */
+:deep(.el-dialog) {
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(var(--color-primary-rgb), 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+:deep(.el-dialog__header) {
+  background: rgba(var(--color-primary-rgb), 0.06);
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  padding: 24px;
+}
+
+:deep(.el-dialog__title) {
+  color: var(--color-text);
+  font-weight: 400;
+  font-family: 'Varela Round', sans-serif;
+  font-size: 18px;
+}
+
+:deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+:deep(.el-descriptions__label) {
+  color: #64748B;
+  font-weight: 600;
+}
+
+:deep(.el-descriptions__content) {
+  color: var(--color-text);
 }
 </style>
