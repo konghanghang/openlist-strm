@@ -2,7 +2,7 @@
 
 本项目的 Docker 镜像会同时推送到两个平台：
 - **GitHub Container Registry (GHCR)**: `ghcr.io/konghanghang/openlist-strm`
-- **Docker Hub**: `你的用户名/openlist-strm`
+- **Docker Hub**: `konghanghang/openlist-strm`
 
 ## 配置步骤
 
@@ -58,13 +58,13 @@ Docker Hub 会在首次推送时自动创建仓库，但你也可以提前手动
 
 ```bash
 # 拉取最新版本
-docker pull 你的用户名/openlist-strm:latest
+docker pull konghanghang/openlist-strm:latest
 
 # 拉取特定版本
-docker pull 你的用户名/openlist-strm:v1.0.0
+docker pull konghanghang/openlist-strm:v1.0.0
 
 # 拉取主分支构建
-docker pull 你的用户名/openlist-strm:master
+docker pull konghanghang/openlist-strm:master
 ```
 
 ### 从 GHCR 拉取

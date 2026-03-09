@@ -18,7 +18,7 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
 - **Web 框架**：Gin
 - **数据库**：SQLite (GORM)
 - **前端**：Vue.js 3 + Element Plus + Vite
-- **部署**：单二进制文件（前端嵌入）/ Docker（待实现）
+- **部署**：单二进制文件（前端嵌入）/ Docker
 
 ---
 

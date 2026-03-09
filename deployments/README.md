@@ -26,19 +26,15 @@ docker-compose logs -f
 ### 2. 使用 Docker（不使用 Compose）
 
 ```bash
-# 构建镜像
-docker build -t openlist-strm:latest ..
-
-# 运行容器
+# 运行容器（使用预构建镜像）
 docker run -d \
   --name openlist-strm \
   -p 8080:8080 \
   -v $(pwd)/config.yaml:/app/configs/config.yaml:ro \
   -v $(pwd)/data:/app/data \
-  -v $(pwd)/logs:/app/logs \
   -v /path/to/your/strm:/mnt/strm \
   -e TZ=Asia/Shanghai \
-  openlist-strm:latest
+  konghanghang/openlist-strm:master
 ```
 
 ## 配置说明
@@ -55,8 +51,8 @@ docker run -d \
 |----------|----------|------|
 | `./config.yaml` | `/app/configs/config.yaml` | 配置文件（只读） |
 | `./data` | `/app/data` | 数据库文件 |
-| `./logs` | `/app/logs` | 日志文件 |
 | `/your/strm/path` | `/mnt/strm` | STRM 输出目录 |
+| `./logs`（可选） | `/app/logs` | 日志文件（仅在配置 `log.file` 时需要） |
 
 ### 端口
 
@@ -130,9 +126,9 @@ services:
 
 确保以下目录被正确挂载以持久化数据：
 
-- `./data` - 数据库文件
-- `./logs` - 日志文件
-- `/your/strm/path` - STRM 文件输出
+- `./data` — 数据库文件
+- `/your/strm/path` — STRM 文件输出
+- `./logs`（可选）— 日志文件，仅在配置 `log.file` 时需要，默认输出到 stdout
 
 ## 健康检查
 
@@ -174,6 +170,106 @@ docker network inspect openlist-strm-network
 # 修改目录权限
 sudo chown -R 1000:1000 ./data ./logs
 ```
+
+## 媒体服务器通知
+
+任务完成后可自动通知 Emby / Jellyfin 扫描媒体库。在 `config.yaml` 中配置：
+
+```yaml
+media_server:
+  enabled: true
+  type: "emby"  # emby / jellyfin / both
+
+  emby:
+    url: "http://emby:8096"
+    api_key: "your-emby-api-key"
+    scan_mode: "full"  # full=全库扫描, path=路径扫描
+    path_mapping:      # 仅 path 模式需要
+      "/data/strm": "/media"
+```
+
+### 扫描模式
+
+| 模式 | 说明 | 优点 | 缺点 |
+|------|------|------|------|
+| `full` | 触发完整媒体库扫描 | 配置简单，无需路径映射 | 扫描时间较长 |
+| `path` | 仅扫描 STRM 文件所在路径 | 速度快，资源占用小 | 需要配置路径映射 |
+
+### 路径映射
+
+当 OpenList-STRM 和媒体服务器的容器路径不一致时，需要配置路径映射：
+
+```
+OpenList-STRM 容器: /data/strm/Movies
+Emby 容器:         /media/Movies
+→ path_mapping: "/data/strm": "/media"
+```
+
+Docker Compose 示例：
+
+```yaml
+services:
+  openlist-strm:
+    image: konghanghang/openlist-strm:master
+    volumes:
+      - ./strm:/data/strm
+
+  emby:
+    image: emby/embyserver
+    volumes:
+      - ./strm:/media  # 路径要与 path_mapping 对应
+```
+
+### 获取 API Key
+
+- **Emby**：设置 → 高级 → API 密钥 → 新建应用程序
+- **Jellyfin**：设置 → API 密钥 → 添加 API 密钥
+
+### 触发条件
+
+- 仅在有文件创建或删除时触发通知
+- 无变更文件时跳过通知
+- 通知失败不影响任务完成状态，仅记录日志
+
+## Trace ID 日志追踪
+
+每个任务生成唯一 Trace ID（Task ID 前 8 位），用于关联所有相关日志。
+
+任务级日志：
+```
+[TraceID: abc12345] Task started: mapping=Movies, mode=incremental, source=/media/movies
+[TraceID: abc12345] Found 150 video files to process
+[TraceID: abc12345] Task COMPLETED: created=10, deleted=2, skipped=140, errors=0, duration=3.5s
+```
+
+文件级日志：
+```
+[TraceID: abc12345] ✅ CREATED: /media/movies/Movie1.mp4
+[TraceID: abc12345] ⏭️  SKIPPED: /media/movies/Movie2.mp4 (already exists)
+[TraceID: abc12345] ❌ ERROR: /media/movies/Movie3.mp4 -> failed to get URL: timeout
+```
+
+### 日志过滤
+
+```bash
+# 通过 Trace ID 过滤所有日志
+grep "TraceID: abc12345" logs/openlist-strm.log
+
+# 只看创建的文件
+grep "TraceID: abc12345" logs/openlist-strm.log | grep "✅ CREATED"
+
+# 只看错误
+grep "TraceID: abc12345" logs/openlist-strm.log | grep "❌ ERROR"
+```
+
+### Trace ID 来源
+
+| 触发方式 | 获取方式 |
+|---------|---------|
+| API 调用 | 响应中的 `task_id` |
+| Webhook | 响应中的 `task_id` |
+| 定时任务 | 日志中查看 |
+| Web UI 手动触发 | 任务列表中显示 |
 
 ## 更新
 
