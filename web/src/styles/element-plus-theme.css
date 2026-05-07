@@ -51,7 +51,7 @@
   background-color: rgba(var(--color-primary-rgb), 0.05) !important;
 }
 
-.el-table th {
+.el-table th.el-table__cell {
   background: rgba(var(--color-primary-rgb), 0.08);
   color: var(--color-text);
   font-weight: 700;
@@ -59,10 +59,17 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border: none;
+  padding: 14px 0;
 }
 
-.el-table td {
+.el-table td.el-table__cell {
   border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
+  padding: 16px 0;
+}
+
+/* 单元格内容行高，配合 td padding 放大整体呼吸感 */
+.el-table .cell {
+  line-height: 26px;
 }
 
 .el-table::before {
@@ -83,6 +90,18 @@
 
 .el-button:active:not(.is-disabled) {
   transform: translateY(0);
+}
+
+/* 表格 cell 默认 overflow: hidden 用于 show-overflow-tooltip 截断；
+ * 表格内按钮 hover 改用 scale 替代 translateY——位移会被 cell 切掉，
+ * 而中心放大不会超出 cell 上下 padding。 */
+.el-table .el-button:hover:not(.is-disabled) {
+  transform: scale(1.04);
+  filter: brightness(1.08);
+}
+
+.el-table .el-button:active:not(.is-disabled) {
+  transform: scale(1);
 }
 
 .el-button--primary {
