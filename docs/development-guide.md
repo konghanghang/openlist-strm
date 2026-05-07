@@ -18,7 +18,7 @@
    - 部署与运行：[`deployments/README.md`](../deployments/README.md)
    - Webhook 集成：[`deployments/WEBHOOK.md`](../deployments/WEBHOOK.md)
    - 后端实现：`backend/`
-   - 前端实现：`web/`
+   - 前端实现：`web/`，前端动手前先读 [前端设计规范](./design-system/index.md)
 
 ## 文档判断规则
 
@@ -27,6 +27,7 @@
 - 产品需求、功能范围、较稳定的架构说明：看 [PRD.md](./PRD.md)。
 - 当前阶段目标和后续方向：看 [roadmap.md](./roadmap.md)。
 - 测试策略、测试清单、当前覆盖进度：看 [TESTING.md](./TESTING.md)。
+- 前端样式、色彩、组件、微交互、反模式：看 [前端设计规范](./design-system/index.md)。
 - 运行配置和可选项：看 [配置示例](../configs/config.example.yaml)。
 - 部署方式、容器使用、故障排查：看 [`deployments/README.md`](../deployments/README.md)。
 - Webhook 用法和外部集成：看 [`deployments/WEBHOOK.md`](../deployments/WEBHOOK.md)。
