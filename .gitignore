@@ -24,6 +24,7 @@ dist/
 !backend/internal/web/dist/
 build/
 backend/main
+backend/server
 backend/*.exe
 
 # IDE files

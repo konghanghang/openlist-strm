@@ -10,6 +10,35 @@ permissions:
   packages: write
 
 jobs:
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        cache-dependency-path: backend/go.sum
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Run tests
+      run: go test ./...
+
+    - name: Build backend
+      run: go build -v ./cmd/server
+
   build-frontend:
     name: Build Frontend
     runs-on: ubuntu-latest
@@ -41,7 +70,9 @@ jobs:
 
   build-binaries:
     name: Build Binaries
-    needs: build-frontend
+    needs:
+      - test-backend
+      - build-frontend
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -87,7 +118,7 @@ jobs:
         if [ "${{ matrix.goos }}" = "windows" ]; then
           BINARY_NAME="${BINARY_NAME}.exe"
         fi
-        go build -v -ldflags="-s -w -X main.Version=${{ steps.version.outputs.VERSION }}" \
+        go build -v -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" \
           -o ../bin/${BINARY_NAME} ./cmd/server
 
     - name: Create archive
@@ -123,6 +154,10 @@ jobs:
     - name: Get version
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Extract repository name
+      id: repo
+      run: echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_OUTPUT
 
     - name: Generate changelog
       id: changelog
@@ -166,7 +201,9 @@ jobs:
 
   build-docker:
     name: Build Docker Image
-    needs: build-frontend
+    needs:
+      - test-backend
+      - build-frontend
     runs-on: ubuntu-latest
 
     steps:
@@ -207,7 +244,7 @@ jobs:
       run: echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_OUTPUT
 
     - name: Build and push
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: .
         platforms: linux/amd64,linux/arm64
