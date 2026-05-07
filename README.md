@@ -139,7 +139,7 @@ curl -X POST http://localhost:8080/api/webhook \
 
 ## 许可证
 
-MIT License
+[MIT License](./LICENSE)
 
 ## 致谢
 
