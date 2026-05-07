@@ -26,21 +26,21 @@
         v-loading="loading"
         style="width: 100%"
       >
-        <el-table-column prop="name" label="配置名称" width="200" />
+        <el-table-column prop="name" label="配置名称" min-width="140" show-overflow-tooltip />
 
-        <el-table-column prop="source" label="源路径（Alist）" min-width="250">
+        <el-table-column prop="source" label="源路径（Alist）" min-width="200" show-overflow-tooltip>
           <template #default="scope">
             <el-text type="primary">{{ scope.row.source }}</el-text>
           </template>
         </el-table-column>
 
-        <el-table-column prop="target" label="目标路径（STRM）" min-width="250">
+        <el-table-column prop="target" label="目标路径（STRM）" min-width="200" show-overflow-tooltip>
           <template #default="scope">
             <el-text type="success">{{ scope.row.target }}</el-text>
           </template>
         </el-table-column>
 
-        <el-table-column prop="extensions" label="扩展名" width="150">
+        <el-table-column prop="extensions" label="扩展名" min-width="130" show-overflow-tooltip>
           <template #default="scope">
             <el-text size="small">{{ scope.row.extensions?.join(', ') }}</el-text>
           </template>
@@ -54,7 +54,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="strm_mode" label="STRM模式" width="120">
+        <el-table-column prop="strm_mode" label="STRM模式" width="110">
           <template #default="scope">
             <el-tag :type="scope.row.strm_mode === 'http_url' ? 'danger' : 'primary'" size="small">
               {{ scope.row.strm_mode === 'alist_path' ? '路径' : '直链' }}
@@ -62,7 +62,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="cron_expr" label="定时任务" width="150">
+        <el-table-column prop="cron_expr" label="定时任务" min-width="140" show-overflow-tooltip>
           <template #default="scope">
             <el-text v-if="scope.row.cron_expr" type="success" size="small">
               {{ scope.row.cron_expr }}
@@ -79,39 +79,37 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="320">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="scope">
-            <el-button
-              type="primary"
-              size="small"
-              :disabled="!scope.row.enabled"
-              @click="handleGenerate(scope.row)"
-              :loading="generatingMap[scope.row.name]"
-            >
-              生成
-            </el-button>
-            <el-button
-              type="success"
-              size="small"
-              @click="handleNotify(scope.row)"
-              :loading="notifyingMap[scope.row.id]"
-            >
-              通知
-            </el-button>
-            <el-button
-              type="warning"
-              size="small"
-              @click="showEditDialog(scope.row)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              type="danger"
-              size="small"
-              @click="handleDelete(scope.row)"
-            >
-              删除
-            </el-button>
+            <div class="action-cell">
+              <el-button
+                type="primary"
+                size="small"
+                :disabled="!scope.row.enabled"
+                @click="handleGenerate(scope.row)"
+                :loading="generatingMap[scope.row.name]"
+              >
+                生成
+              </el-button>
+              <el-dropdown trigger="click" @command="(cmd) => handleAction(cmd, scope.row)">
+                <el-button size="small" class="action-more">
+                  更多<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="notify" :disabled="!scope.row.enabled">
+                      <el-icon><Bell /></el-icon>通知媒体服务器
+                    </el-dropdown-item>
+                    <el-dropdown-item command="edit">
+                      <el-icon><Edit /></el-icon>编辑
+                    </el-dropdown-item>
+                    <el-dropdown-item command="delete" divided class="action-delete">
+                      <el-icon><Delete /></el-icon>删除
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -169,7 +167,7 @@
 
         <el-form-item label="并发数" prop="concurrent">
           <el-input-number v-model="formData.concurrent" :min="1" :max="20" style="width: 100%" />
-          <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+          <div class="cron-hint">
             同时处理的文件数量，建议 1-5，过大可能触发网盘风控
           </div>
         </el-form-item>
@@ -190,7 +188,7 @@
 
         <el-form-item label="强制刷新">
           <el-switch v-model="formData.force_refresh" />
-          <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+          <div class="cron-hint">
             启用后每次扫描都会强制刷新 Alist 缓存，获取最新文件列表（可能影响性能）
           </div>
         </el-form-item>
@@ -297,19 +295,19 @@
             </div>
 
             <!-- 表达式和执行时间预览 -->
-            <div style="margin-top: 10px; color: #909399; font-size: 12px;">
+            <div class="cron-preview">
               <div v-if="formData.cron_expr">
-                <div style="margin-bottom: 5px;">
+                <div class="cron-preview-label">
                   Cron 表达式：<el-text type="success">{{ formData.cron_expr }}</el-text>
                 </div>
                 <div v-if="nextRunTimes.length > 0">
-                  <div style="margin-bottom: 3px;">最近三次执行时间：</div>
-                  <div v-for="(time, index) in nextRunTimes" :key="index" style="margin-left: 10px; line-height: 1.8;">
+                  <div class="cron-preview-label">最近三次执行时间：</div>
+                  <div v-for="(time, index) in nextRunTimes" :key="index" class="cron-preview-item">
                     <el-text type="warning">{{ index + 1 }}. {{ time }}</el-text>
                   </div>
                 </div>
               </div>
-              <div v-else style="color: #909399;">
+              <div v-else>
                 留空表示不启用定时任务
               </div>
             </div>
@@ -334,7 +332,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, VideoPlay, Refresh } from '@element-plus/icons-vue'
+import { Plus, VideoPlay, Refresh, ArrowDown, Bell, Edit, Delete } from '@element-plus/icons-vue'
 import api from '../api'
 
 const configs = ref([])
@@ -769,6 +767,20 @@ const handleNotify = async (config) => {
   }
 }
 
+const handleAction = (command, config) => {
+  switch (command) {
+    case 'notify':
+      handleNotify(config)
+      break
+    case 'edit':
+      showEditDialog(config)
+      break
+    case 'delete':
+      handleDelete(config)
+      break
+  }
+}
+
 onMounted(() => {
   loadConfigs()
 })
@@ -784,218 +796,65 @@ onMounted(() => {
   font-family: 'Varela Round', sans-serif;
 }
 
-/* 卡片 - Glassmorphism */
-:deep(.el-card) {
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.12);
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 24px;
-  overflow: hidden;
-  transition: all 0.25s ease;
+.cron-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin-top: 5px;
 }
 
-:deep(.el-card:hover) {
-  box-shadow: 0 12px 48px rgba(var(--color-primary-rgb), 0.18);
+.cron-preview {
+  margin-top: 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
 }
 
-:deep(.el-card__header) {
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
-  padding: 20px 24px;
-  background: rgba(255, 255, 255, 0.5);
+.cron-preview-label {
+  margin-bottom: 5px;
 }
 
-:deep(.el-card__body) {
-  padding: 24px;
+.cron-preview-item {
+  margin-left: 10px;
+  line-height: 1.8;
 }
 
-/* 表格 */
-:deep(.el-table) {
-  background: transparent;
-  font-size: 14px;
+/* 操作列布局 */
+.action-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-:deep(.el-table__row) {
-  transition: all 0.2s ease;
+/* 「更多」按钮——降级为线框，避免和主操作抢视觉权重 */
+:deep(.action-more) {
+  background: rgba(var(--color-primary-rgb), 0.06);
+  color: var(--color-primary);
+  box-shadow: none;
 }
 
-:deep(.el-table__row:hover) {
-  background-color: rgba(var(--color-primary-rgb), 0.05) !important;
+:deep(.action-more:hover) {
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: var(--color-primary);
 }
 
-:deep(.el-table th) {
-  background: rgba(var(--color-primary-rgb), 0.08);
-  color: var(--color-text);
-  font-weight: 700;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: none;
+/* 删除项独立配色，强化危险操作识别 */
+:deep(.action-delete) {
+  color: #DC2626;
 }
 
-:deep(.el-table td) {
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
+:deep(.action-delete:hover) {
+  background: rgba(220, 38, 38, 0.08);
+  color: #B91C1C;
 }
 
-:deep(.el-table::before) {
-  display: none;
-}
-
-/* 路径文本 */
+/* Configs 特有：路径文本等宽显示 */
 :deep(.el-text) {
   font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
   font-size: 12px;
 }
 
-/* 按钮 */
-:deep(.el-button) {
-  border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-:deep(.el-button:hover) {
-  transform: translateY(-2px);
-}
-
-:deep(.el-button:active) {
-  transform: translateY(0);
-}
-
-:deep(.el-button--primary) {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
-}
-
-:deep(.el-button--primary:hover) {
-  box-shadow: 0 8px 20px rgba(var(--color-primary-rgb), 0.4);
-}
-
-:deep(.el-button--success) {
-  background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-:deep(.el-button--success:hover) {
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
-}
-
-:deep(.el-button--warning) {
-  background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-:deep(.el-button--danger) {
-  background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-/* 标签 */
-:deep(.el-tag) {
-  border-radius: 8px;
-  font-weight: 600;
-  border: none;
-  padding: 4px 12px;
-}
-
-/* 对话框 - Glassmorphism */
-:deep(.el-dialog) {
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: 0 24px 64px rgba(var(--color-primary-rgb), 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-:deep(.el-dialog__header) {
-  background: rgba(var(--color-primary-rgb), 0.06);
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
-  padding: 24px;
-}
-
-:deep(.el-dialog__title) {
-  color: var(--color-text);
-  font-weight: 400;
-  font-family: 'Varela Round', sans-serif;
-  font-size: 18px;
-}
-
-:deep(.el-dialog__body) {
-  padding: 24px;
-}
-
-:deep(.el-dialog__footer) {
-  padding: 16px 24px;
-  border-top: 1px solid rgba(var(--color-primary-rgb), 0.1);
-  background: rgba(var(--color-primary-rgb), 0.03);
-}
-
-/* 表单 */
-:deep(.el-form-item__label) {
-  color: var(--color-text);
-  font-weight: 600;
-  font-size: 14px;
-}
-
-:deep(.el-input__wrapper) {
-  border-radius: 12px;
-  box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.15) inset;
-  transition: all 0.2s ease;
-}
-
-:deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.3) inset;
-}
-
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.4) inset;
-}
-
+/* Configs 特有：表单输入用等宽字体（路径录入） */
 :deep(.el-input__inner) {
   font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
   font-size: 13px;
-}
-
-:deep(.el-select .el-input__wrapper) {
-  border-radius: 12px;
-}
-
-:deep(.el-input-number) {
-  border-radius: 12px;
-}
-
-:deep(.el-radio__label) {
-  font-weight: 400;
-  color: #475569;
-}
-
-:deep(.el-radio__input.is-checked + .el-radio__label) {
-  color: var(--color-primary);
-}
-
-:deep(.el-radio__input.is-checked .el-radio__inner) {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-:deep(.el-switch.is-checked .el-switch__core) {
-  background-color: var(--color-primary);
-}
-
-/* 空状态 */
-:deep(.el-alert) {
-  border: 1px solid rgba(var(--color-primary-rgb), 0.15);
-  background: rgba(var(--color-primary-rgb), 0.05);
-  border-radius: 16px;
-}
-
-:deep(.el-alert__title) {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-:deep(.el-alert__description) {
-  color: #64748B;
 }
 </style>

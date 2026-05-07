@@ -16,15 +16,15 @@
         v-loading="loading"
         style="width: 100%"
       >
-        <el-table-column prop="task_id" label="任务ID" width="280">
+        <el-table-column prop="task_id" label="任务ID" min-width="200" show-overflow-tooltip>
           <template #default="scope">
             <el-text type="info" size="small">{{ scope.row.task_id }}</el-text>
           </template>
         </el-table-column>
 
-        <el-table-column prop="config_name" label="配置名称" width="150" />
+        <el-table-column prop="config_name" label="配置名称" min-width="120" show-overflow-tooltip />
 
-        <el-table-column prop="mode" label="模式" width="100">
+        <el-table-column prop="mode" label="模式" width="90">
           <template #default="scope">
             <el-tag size="small" :type="scope.row.mode === 'full' ? 'warning' : ''">
               {{ getModeText(scope.row.mode) }}
@@ -32,7 +32,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" label="状态" width="120">
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="scope">
             <el-tag
               :type="getStatusType(scope.row.status)"
@@ -43,7 +43,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="文件统计" width="200">
+        <el-table-column label="文件统计" min-width="180">
           <template #default="scope">
             <div class="file-stats">
               <span class="stat-item">
@@ -62,19 +62,19 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="started_at" label="开始时间" width="180">
+        <el-table-column prop="started_at" label="开始时间" width="170">
           <template #default="scope">
             {{ formatTime(scope.row.started_at) }}
           </template>
         </el-table-column>
 
-        <el-table-column label="耗时" width="100">
+        <el-table-column label="耗时" width="90">
           <template #default="scope">
             {{ calculateDuration(scope.row.started_at, scope.row.completed_at) }}
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="110" fixed="right">
           <template #default="scope">
             <el-button
               type="text"
@@ -260,147 +260,14 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-/* 卡片 - Glassmorphism */
-:deep(.el-card) {
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.12);
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 24px;
-  overflow: hidden;
-  transition: all 0.25s ease;
-}
-
-:deep(.el-card:hover) {
-  box-shadow: 0 12px 48px rgba(var(--color-primary-rgb), 0.18);
-}
-
-:deep(.el-card__header) {
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
-  padding: 20px 24px;
-  background: rgba(255, 255, 255, 0.5);
-}
-
-:deep(.el-card__body) {
-  padding: 24px;
-}
-
-/* 表格 */
-:deep(.el-table) {
-  background: transparent;
-  font-size: 14px;
-}
-
+/* Tasks 特有：行可点击查看详情 */
 :deep(.el-table__row) {
-  transition: all 0.2s ease;
   cursor: pointer;
 }
 
-:deep(.el-table__row:hover) {
-  background-color: rgba(var(--color-primary-rgb), 0.05) !important;
-}
-
-:deep(.el-table th) {
-  background: rgba(var(--color-primary-rgb), 0.08);
-  color: var(--color-text);
-  font-weight: 700;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: none;
-}
-
-:deep(.el-table td) {
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
-}
-
-:deep(.el-table::before) {
-  display: none;
-}
-
-/* 任务ID */
+/* Tasks 特有：task_id 等宽显示 */
 :deep(.el-text) {
   font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
   font-size: 12px;
-}
-
-/* 按钮 */
-:deep(.el-button) {
-  border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-:deep(.el-button--primary) {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
-}
-
-:deep(.el-button--primary:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(var(--color-primary-rgb), 0.4);
-}
-
-:deep(.el-button--text) {
-  color: var(--color-primary);
-}
-
-:deep(.el-button--text:hover) {
-  background: rgba(var(--color-primary-rgb), 0.1);
-  color: var(--color-primary);
-}
-
-/* 标签 */
-:deep(.el-tag) {
-  border-radius: 8px;
-  font-weight: 600;
-  border: none;
-  padding: 4px 12px;
-}
-
-/* 分页器 */
-:deep(.el-pagination) {
-  font-weight: 600;
-}
-
-:deep(.el-pagination .el-pager li.is-active) {
-  background: var(--color-primary);
-  border-radius: 10px;
-}
-
-/* 对话框 - Glassmorphism */
-:deep(.el-dialog) {
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: 0 24px 64px rgba(var(--color-primary-rgb), 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-:deep(.el-dialog__header) {
-  background: rgba(var(--color-primary-rgb), 0.06);
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
-  padding: 24px;
-}
-
-:deep(.el-dialog__title) {
-  color: var(--color-text);
-  font-weight: 400;
-  font-family: 'Varela Round', sans-serif;
-  font-size: 18px;
-}
-
-:deep(.el-dialog__body) {
-  padding: 24px;
-}
-
-:deep(.el-descriptions__label) {
-  color: #64748B;
-  font-weight: 600;
-}
-
-:deep(.el-descriptions__content) {
-  color: var(--color-text);
 }
 </style>

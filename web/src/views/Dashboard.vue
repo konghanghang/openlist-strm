@@ -1,8 +1,8 @@
 <template>
   <div class="dashboard">
     <el-row :gutter="20">
-      <el-col :span="6">
-        <el-card class="stat-card">
+      <el-col :xs="24" :sm="12" :lg="6">
+        <el-card class="stat-card" @click="$router.push('/configs')">
           <div class="stat-content">
             <el-icon class="stat-icon" :style="{ color: 'var(--color-primary)' }"><Setting /></el-icon>
             <div class="stat-info">
@@ -13,8 +13,8 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card">
+      <el-col :xs="24" :sm="12" :lg="6">
+        <el-card class="stat-card" @click="$router.push('/tasks')">
           <div class="stat-content">
             <el-icon class="stat-icon" :style="{ color: 'var(--color-cta)' }"><List /></el-icon>
             <div class="stat-info">
@@ -25,8 +25,8 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card">
+      <el-col :xs="24" :sm="12" :lg="6">
+        <el-card class="stat-card stat-card--static">
           <div class="stat-content">
             <el-icon class="stat-icon" :style="{ color: 'var(--color-secondary)' }"><InfoFilled /></el-icon>
             <div class="stat-info">
@@ -37,8 +37,8 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card">
+      <el-col :xs="24" :sm="12" :lg="6">
+        <el-card class="stat-card stat-card--static">
           <div class="stat-content">
             <el-icon class="stat-icon" :style="{ color: 'var(--color-primary)' }"><Odometer /></el-icon>
             <div class="stat-info">
@@ -251,6 +251,27 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.85);
 }
 
+/* 非可点击的 stat 卡：版本号、运行时间——只展示信息 */
+.stat-card--static {
+  cursor: default;
+}
+
+.stat-card--static:hover {
+  transform: none;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* 列堆叠时（sm/xs 断点）补垂直间距，el-row gutter 只管水平 */
+.el-col {
+  margin-bottom: 16px;
+}
+
+@media (min-width: 1200px) {
+  .el-col {
+    margin-bottom: 0;
+  }
+}
+
 .stat-content {
   display: flex;
   align-items: center;
@@ -266,6 +287,10 @@ onUnmounted(() => {
 
 .stat-info {
   flex: 1;
+  min-height: 86px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .stat-value {
@@ -282,7 +307,7 @@ onUnmounted(() => {
 
 .stat-label {
   font-size: 14px;
-  color: #64748B;
+  color: var(--color-text-muted);
   margin-top: 6px;
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -290,8 +315,9 @@ onUnmounted(() => {
 
 .stat-extra {
   font-size: 11px;
-  color: #94A3B8;
+  color: var(--color-text-muted);
   margin-top: 4px;
+  min-height: 14px;
 }
 
 .card-header {
@@ -320,91 +346,8 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
-/* 表格行悬停效果 */
+/* Dashboard 特有：表格行轻微缩放反馈 */
 :deep(.el-table__row) {
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-:deep(.el-table__row:hover) {
-  background-color: rgba(var(--color-primary-rgb), 0.05) !important;
-  transform: scale(1.005);
-}
-
-/* 卡片样式优化 - Glassmorphism */
-:deep(.el-card) {
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(var(--color-primary-rgb), 0.12);
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 24px;
-  overflow: hidden;
-  transition: all 0.25s ease;
-}
-
-:deep(.el-card:hover) {
-  box-shadow: 0 12px 48px rgba(var(--color-primary-rgb), 0.18);
-  border-color: rgba(var(--color-primary-rgb), 0.3);
-}
-
-:deep(.el-card__header) {
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
-  padding: 20px 24px;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(10px);
-}
-
-:deep(.el-card__body) {
-  padding: 24px;
-}
-
-/* 表格样式 */
-:deep(.el-table) {
-  background: transparent;
-  font-size: 14px;
-}
-
-:deep(.el-table th) {
-  background: rgba(var(--color-primary-rgb), 0.08);
-  color: var(--color-text);
-  font-weight: 700;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: none;
-}
-
-:deep(.el-table td) {
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.08);
-}
-
-:deep(.el-table::before) {
-  display: none;
-}
-
-/* 按钮优化 */
-:deep(.el-button) {
-  border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-:deep(.el-button--text) {
-  color: var(--color-primary);
-}
-
-:deep(.el-button--text:hover) {
-  background: rgba(var(--color-primary-rgb), 0.1);
-  color: var(--color-primary);
-}
-
-/* 标签优化 */
-:deep(.el-tag) {
-  border-radius: 8px;
-  font-weight: 600;
-  border: none;
-  padding: 4px 12px;
+  cursor: default;
 }
 </style>
