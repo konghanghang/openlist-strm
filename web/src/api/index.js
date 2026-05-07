@@ -21,9 +21,14 @@ api.interceptors.request.use(
 )
 
 // Response interceptor
+// 把后端 {"error": "..."} 标准化到 error.message，调用方直接读 err.message
 api.interceptors.response.use(
   response => response.data,
   error => {
+    const backendMsg = error.response?.data?.error || error.response?.data?.message
+    if (backendMsg) {
+      error.message = backendMsg
+    }
     console.error('API Error:', error)
     return Promise.reject(error)
   }

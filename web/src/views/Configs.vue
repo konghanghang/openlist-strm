@@ -112,16 +112,11 @@
             </div>
           </template>
         </el-table-column>
-      </el-table>
 
-      <el-alert
-        v-if="!configs.length && !loading"
-        title="暂无配置"
-        type="info"
-        description="请点击「新增配置」按钮添加路径映射配置"
-        :closable="false"
-        style="margin-top: 20px;"
-      />
+        <template #empty>
+          <el-empty description="暂无配置，请点击右上角「新增配置」添加路径映射" />
+        </template>
+      </el-table>
     </el-card>
 
     <!-- 新增/编辑对话框 -->
@@ -421,7 +416,7 @@ const loadConfigs = async () => {
     configs.value = data.configs || []
   } catch (error) {
     console.error('Failed to load configs:', error)
-    ElMessage.error('加载配置失败')
+    ElMessage.error(`加载配置失败：${error.message}`)
   } finally {
     loading.value = false
   }
@@ -713,7 +708,8 @@ const handleSubmit = async () => {
     loadConfigs()
   } catch (error) {
     console.error('Failed to save config:', error)
-    ElMessage.error(dialogMode.value === 'add' ? '创建配置失败' : '更新配置失败')
+    const fallback = dialogMode.value === 'add' ? '创建配置失败' : '更新配置失败'
+    ElMessage.error(`${fallback}：${error.message}`)
   } finally {
     submitting.value = false
   }
@@ -737,7 +733,7 @@ const handleDelete = async (config) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('Failed to delete config:', error)
-      ElMessage.error('删除配置失败')
+      ElMessage.error(`删除配置失败：${error.message}`)
     }
   }
 }
@@ -752,7 +748,8 @@ const handleGenerate = async (config) => {
     })
     ElMessage.success(`任务已启动：${result.task_id}`)
   } catch (error) {
-    ElMessage.error('启动任务失败')
+    console.error('Failed to start task:', error)
+    ElMessage.error(`启动任务失败：${error.message}`)
   } finally {
     generatingMap[config.name] = false
   }
@@ -767,7 +764,8 @@ const handleGenerateAll = async () => {
     })
     ElMessage.success(`任务已启动：${result.task_id}`)
   } catch (error) {
-    ElMessage.error('启动任务失败')
+    console.error('Failed to start tasks:', error)
+    ElMessage.error(`启动任务失败：${error.message}`)
   } finally {
     generating.value = false
   }
@@ -781,7 +779,7 @@ const handleNotify = async (config) => {
     ElMessage.success(`通知已发送：${result.message}`)
   } catch (error) {
     console.error('Failed to notify media server:', error)
-    ElMessage.error('发送通知失败')
+    ElMessage.error(`发送通知失败：${error.message}`)
   } finally {
     notifyingMap[config.id] = false
   }

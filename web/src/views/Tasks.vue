@@ -85,6 +85,10 @@
             </el-button>
           </template>
         </el-table-column>
+
+        <template #empty>
+          <el-empty description="暂无任务记录" />
+        </template>
       </el-table>
 
       <div class="pagination-container">
@@ -153,7 +157,7 @@ const loadTasks = async () => {
     total.value = data.total || 0
   } catch (error) {
     console.error('Failed to load tasks:', error)
-    ElMessage.error('加载任务列表失败')
+    ElMessage.error(`加载任务列表失败：${error.message}`)
   } finally {
     loading.value = false
   }

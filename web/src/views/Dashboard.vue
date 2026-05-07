@@ -107,6 +107,10 @@
                 {{ calculateDuration(scope.row.started_at, scope.row.completed_at) }}
               </template>
             </el-table-column>
+
+            <template #empty>
+              <el-empty description="暂无任务记录" />
+            </template>
           </el-table>
         </el-card>
       </el-col>
@@ -155,7 +159,7 @@ const loadData = async () => {
     stats.value.configCount = configsData.configs ? configsData.configs.length : 0
   } catch (error) {
     console.error('Failed to load data:', error)
-    ElMessage.error('加载数据失败')
+    ElMessage.error(`加载数据失败：${error.message}`)
   }
 }
 
@@ -217,11 +221,11 @@ const calculateDuration = (start, end) => {
 onMounted(() => {
   loadData()
 
-  // Start uptime auto-increment (every second)
+  // 5 秒一次足够：人眼分辨不出更短的间隔，省下大量空跑
   uptimeInterval = setInterval(() => {
-    uptimeSeconds++
+    uptimeSeconds += 5
     stats.value.uptime = formatUptime(uptimeSeconds)
-  }, 1000)
+  }, 5000)
 })
 
 onUnmounted(() => {
