@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - pre_release
+    tags:
+      - 'v*'
     paths:
       - 'backend/**'
       - 'web/**'
@@ -86,13 +88,30 @@ jobs:
     - name: Determine image tags
       id: meta
       run: |
-        BRANCH=${GITHUB_REF#refs/heads/}
-        SHORT_SHA=$(git rev-parse --short HEAD)
         REPO_NAME=${GITHUB_REPOSITORY#*/}
-        echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
-        echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
         echo "repo_name=${REPO_NAME}" >> $GITHUB_OUTPUT
-        echo "tags=${{ secrets.DOCKER_USERNAME }}/${REPO_NAME}:${BRANCH},${{ secrets.DOCKER_USERNAME }}/${REPO_NAME}:${BRANCH}-${SHORT_SHA},ghcr.io/${{ github.repository }}:${BRANCH},ghcr.io/${{ github.repository }}:${BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+        if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "is_release=true" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+          echo "tags=${{ secrets.DOCKER_USERNAME }}/${REPO_NAME}:${VERSION},${{ secrets.DOCKER_USERNAME }}/${REPO_NAME}:latest,ghcr.io/${{ github.repository }}:${VERSION},ghcr.io/${{ github.repository }}:latest" >> $GITHUB_OUTPUT
+        else
+          BRANCH=${GITHUB_REF#refs/heads/}
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "is_release=false" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "version=${BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "platforms=linux/amd64" >> $GITHUB_OUTPUT
+          echo "tags=${{ secrets.DOCKER_USERNAME }}/${REPO_NAME}:${BRANCH},${{ secrets.DOCKER_USERNAME }}/${REPO_NAME}:${BRANCH}-${SHORT_SHA},ghcr.io/${{ github.repository }}:${BRANCH},ghcr.io/${{ github.repository }}:${BRANCH}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Set up QEMU
+      if: steps.meta.outputs.is_release == 'true'
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: linux/arm64
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
@@ -111,25 +130,39 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
-        platforms: linux/amd64
+        platforms: ${{ steps.meta.outputs.platforms }}
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: |
           org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}
-          org.opencontainers.image.version=${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}
+          org.opencontainers.image.version=${{ steps.meta.outputs.version }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
     - name: Summary
       run: |
-        echo "### Docker 预览镜像构建成功" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**分支**: \`${{ steps.meta.outputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "**提交**: \`${{ steps.meta.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**镜像标签**:" >> $GITHUB_STEP_SUMMARY
-        echo "- \`${{ secrets.DOCKER_USERNAME }}/${{ steps.meta.outputs.repo_name }}:${{ steps.meta.outputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`${{ secrets.DOCKER_USERNAME }}/${{ steps.meta.outputs.repo_name }}:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+        if [[ "${{ steps.meta.outputs.is_release }}" == "true" ]]; then
+          echo "### Docker 正式镜像构建成功" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**版本**: \`${{ steps.meta.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**平台**: \`${{ steps.meta.outputs.platforms }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**镜像标签**:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ secrets.DOCKER_USERNAME }}/${{ steps.meta.outputs.repo_name }}:${{ steps.meta.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ secrets.DOCKER_USERNAME }}/${{ steps.meta.outputs.repo_name }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${{ github.repository }}:latest\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### Docker 预览镜像构建成功" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**分支**: \`${{ steps.meta.outputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**提交**: \`${{ steps.meta.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**平台**: \`${{ steps.meta.outputs.platforms }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**镜像标签**:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ secrets.DOCKER_USERNAME }}/${{ steps.meta.outputs.repo_name }}:${{ steps.meta.outputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ secrets.DOCKER_USERNAME }}/${{ steps.meta.outputs.repo_name }}:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.branch }}-${{ steps.meta.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+        fi
