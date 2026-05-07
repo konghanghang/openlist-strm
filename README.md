@@ -118,10 +118,13 @@ curl -X POST http://localhost:8080/api/webhook \
 
 | 文档 | 说明 |
 |------|------|
+| [开发指南](./docs/development-guide.md) | 开发阅读顺序、文档判断规则、最小验证要求 |
+| [系统架构](./docs/system-architecture.md) | 当前真实代码结构、关键执行链路 |
 | [配置文件示例](./configs/config.example.yaml) | 完整配置项说明 |
 | [Docker 部署指南](./deployments/README.md) | Docker 部署、Alist 集成、故障排查 |
 | [Webhook 集成指南](./deployments/WEBHOOK.md) | Webhook API、下载器集成、自动化 |
-| [项目需求文档](./docs/PRD.md) | 架构设计、功能规划 |
+| [项目需求文档](./docs/PRD.md) | 产品目标、功能需求、非功能约束 |
+| [路线图](./docs/roadmap.md) | 当前阶段、版本方向、待完成项 |
 | [测试计划](./docs/TESTING.md) | 测试策略、进度跟踪 |
 
 ## 推荐配套工具

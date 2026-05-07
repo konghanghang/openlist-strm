@@ -6,7 +6,10 @@
 
 | 文档 | 说明 | 适合人群 |
 |------|------|---------|
-| [项目需求文档 (PRD)](./PRD.md) | 项目架构、功能需求、开发计划 | 贡献者、架构师 |
+| [开发指南](./development-guide.md) | 阅读顺序、文档判断规则、最小验证要求 | 开发者、AI Agent |
+| [系统架构](./system-architecture.md) | 当前真实代码结构、关键链路、模块边界 | 开发者、架构师 |
+| [项目需求文档 (PRD)](./PRD.md) | 产品目标、功能需求、非功能约束 | 贡献者、架构师 |
+| [路线图](./roadmap.md) | 当前阶段、待完成项、版本方向 | 贡献者、维护者 |
 | [测试计划 (TESTING)](./TESTING.md) | 测试策略、进度跟踪、编写规范 | 开发者、QA |
 
 ### 部署文档
@@ -26,7 +29,7 @@
 
 **新用户**：[README](../README.md) → [配置示例](../configs/config.example.yaml) → [Docker 部署](../deployments/README.md)
 
-**开发者**：[PRD](./PRD.md) → [测试计划](./TESTING.md) → 克隆代码开始开发
+**开发者**：[开发指南](./development-guide.md) → [系统架构](./system-architecture.md) → [PRD](./PRD.md) → [测试计划](./TESTING.md)
 
 **高级用户**：[Webhook 集成](../deployments/WEBHOOK.md) → 配置自动化流程
 

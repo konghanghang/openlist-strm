@@ -2,6 +2,10 @@
 
 ## 1. 项目概述
 
+> 当前代码实现和模块边界请看 [系统架构](./system-architecture.md)。
+> 当前阶段目标和后续版本方向请看 [路线图](./roadmap.md)。
+> 测试策略和覆盖进度请看 [测试计划](./TESTING.md)。
+
 ### 1.1 项目简介
 OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用于将 Alist 网盘中的媒体文件批量生成为 STRM 格式，供 Emby、Jellyfin、Plex 等流媒体服务器使用。
 
@@ -202,7 +206,7 @@ Response:
 }
 
 # 4. Webhook 接收（可选）
-POST /api/webhook/alist
+POST /api/webhook
 Request:
 {
   "event": "file.uploaded",
@@ -210,12 +214,11 @@ Request:
 }
 
 # 5. 健康检查
-GET /api/health
+GET /health
 Response:
 {
   "status": "ok",
-  "version": "1.0.0",
-  "uptime": 3600
+  "version": "1.0.0"
 }
 ```
 
@@ -229,290 +232,23 @@ Response:
 
 ---
 
-## 3. 技术架构
+## 3. 实现说明
 
-### 3.1 项目结构
-```
-openlist-strm/
-├── cmd/
-│   └── server/
-│       └── main.go              # 程序入口
-├── internal/
-│   ├── config/                  # 配置管理
-│   │   ├── config.go
-│   │   └── loader.go
-│   ├── alist/                   # Alist API 客户端
-│   │   ├── client.go
-│   │   └── types.go
-│   ├── strm/                    # STRM 生成器
-│   │   ├── generator.go
-│   │   └── validator.go
-│   ├── scheduler/               # 任务调度器
-│   │   ├── cron.go
-│   │   └── task.go
-│   ├── storage/                 # 数据存储
-│   │   ├── sqlite.go
-│   │   └── models.go
-│   ├── api/                     # HTTP API
-│   │   ├── handlers.go
-│   │   ├── middleware.go
-│   │   └── routes.go
-│   └── web/                     # Web UI
-│       ├── handler.go
-│       └── static/
-├── web/                         # 前端代码（Vue 3 + Vite）
-│   ├── src/
-│   │   ├── views/               # 页面组件
-│   │   ├── router/              # 路由配置
-│   │   ├── api/                 # API 封装
-│   │   └── App.vue
-│   ├── dist/                    # 构建产物
-│   ├── public/
-│   ├── package.json
-│   └── vite.config.js
-├── configs/
-│   └── config.example.yaml      # 配置示例
-├── deployments/
-│   ├── Dockerfile
-│   └── docker-compose.yml
-├── docs/
-│   ├── README.md
-│   ├── API.md
-│   └── FAQ.md
-├── go.mod
-├── go.sum
-└── Makefile
-```
+当前仓库已经有独立的现状文档，本 PRD 不再重复维护具体目录树、模块文件名和运行链路，避免需求文档与实现文档互相污染。
 
-### 3.2 核心模块
+需要看当前真实实现时，请直接阅读：
 
-#### 3.2.1 配置管理模块
-- **职责**：加载、验证、管理配置
-- **技术**：viper（YAML 解析）
-- **配置文件结构**：
-  ```yaml
-  # 全局配置
-  server:
-    host: "0.0.0.0"
-    port: 8080
-
-  # Alist 配置
-  alist:
-    url: "http://localhost:5244"
-    token: "your-alist-token"
-    sign_enabled: false
-    timeout: 30
-
-  # STRM 配置
-  strm:
-    output_dir: "/mnt/strm"
-    concurrent: 10                    # 并发数
-    extensions:                        # 视频格式
-      - mp4
-      - mkv
-      - avi
-    download_metadata: true            # 下载元数据
-
-  # 路径映射
-  mappings:
-    - name: "电影"
-      source: "/media/movies"
-      target: "/mnt/strm/movies"
-      mode: "incremental"
-      enabled: true
-
-  # 定时任务
-  schedule:
-    enabled: true
-    cron: "0 2 * * *"                  # 每天凌晨2点
-
-  # API 配置
-  api:
-    enabled: true
-    token: "your-api-token"            # 可选
-    timeout: 300
-
-  # Web UI
-  web:
-    enabled: true
-    username: "admin"
-    password: "admin123"
-
-  # 日志
-  log:
-    level: "info"                      # debug/info/warn/error
-    file: "/var/log/openlist-strm.log"
-    max_size: 100                      # MB
-    max_backups: 3
-  ```
-
-#### 3.2.2 Alist 客户端模块
-- **职责**：与 Alist API 交互
-- **主要功能**：
-  - 获取文件列表（递归）
-  - 生成文件直链
-  - 签名支持
-  - 请求重试
-
-#### 3.2.3 STRM 生成器模块
-- **职责**：生成和管理 STRM 文件
-- **主要功能**：
-  - 创建 STRM 文件
-  - 目录结构同步
-  - 文件去重和校验
-  - 元数据下载
-
-#### 3.2.4 任务调度模块
-- **职责**：管理任务执行
-- **技术**：robfig/cron（定时任务）
-- **主要功能**：
-  - Cron 定时任务
-  - 手动任务触发
-  - 任务队列管理
-  - 并发控制
-
-#### 3.2.5 数据存储模块
-- **职责**：持久化数据存储
-- **技术**：gorm + SQLite
-- **数据表设计**：
-  ```sql
-  -- 文件状态表
-  CREATE TABLE files (
-    id INTEGER PRIMARY KEY,
-    path TEXT UNIQUE NOT NULL,
-    size INTEGER,
-    modified_at DATETIME,
-    hash TEXT,
-    strm_path TEXT,
-    created_at DATETIME,
-    updated_at DATETIME
-  );
-
-  -- 任务历史表
-  CREATE TABLE tasks (
-    id INTEGER PRIMARY KEY,
-    task_id TEXT UNIQUE NOT NULL,
-    config_name TEXT,
-    mode TEXT,
-    status TEXT,
-    files_created INTEGER,
-    files_deleted INTEGER,
-    errors TEXT,
-    started_at DATETIME,
-    completed_at DATETIME
-  );
-
-  -- 用户表
-  CREATE TABLE users (
-    id INTEGER PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT,
-    created_at DATETIME
-  );
-  ```
-
-#### 3.2.6 HTTP API 模块
-- **职责**：提供 RESTful API
-- **技术**：Gin 框架
-- **中间件**：
-  - 日志中间件
-  - 认证中间件（Token/Session）
-  - CORS 中间件
-  - 限流中间件
-
-#### 3.2.7 Web UI 模块
-- **职责**：提供管理界面
-- **技术方案**：Vue.js 3 + Element Plus + Vite
-- **页面结构**：
-  - 仪表盘：系统状态、快速操作、最近任务
-  - 任务管理：任务列表、执行状态、详情查看
-  - 配置管理：路径映射配置、手动触发
-- **部署方式**：构建后嵌入 Go 二进制文件（embed.FS）
+- [系统架构](./system-architecture.md)
+- [配置示例](../configs/config.example.yaml)
+- [部署文档](../deployments/README.md)
 
 ---
 
-## 4. 开发计划
+## 4. 规划说明
 
-### 4.1 阶段划分
+当前阶段、里程碑、待完成项和后续版本方向已经单独整理到 [路线图](./roadmap.md)。
 
-#### Phase 1: MVP（已完成 ✅）
-**目标**：实现核心功能，CLI 可用
-
-- [x] 项目初始化
-- [x] 配置管理模块
-- [x] Alist 客户端实现
-- [x] STRM 生成器（基础版）
-- [x] 增量/全量更新逻辑
-- [x] 定时任务（Cron）
-- [x] SQLite 存储
-- [x] 基础日志
-
-**交付物**：
-- ✅ 可执行的 CLI 工具
-- ✅ 配置文件示例
-- ✅ 基础 README
-
-#### Phase 2: Web UI + API（已完成 ✅）
-**目标**：添加 Web UI 和 RESTful API
-
-- [x] RESTful API 实现
-- [x] API Token 认证
-- [x] 任务状态查询接口
-- [x] Vue 3 项目结构
-- [x] Web UI 基础框架
-- [x] 配置管理界面
-- [x] 任务管理界面
-- [x] 仪表盘界面
-- [x] 前端构建和嵌入
-
-**交付物**：
-- ✅ 带 Web UI 的完整应用
-- ✅ RESTful API 接口
-- ✅ 单二进制文件部署
-- ✅ 更新文档
-
-#### Phase 3: 扩展功能（部分完成 ✅）
-**目标**：添加高级功能和优化
-
-- [x] Docker 打包
-- [x] Docker Compose 配置
-- [x] Webhook 支持
-- [ ] 元数据下载
-- [ ] 文件有效性检测
-- [ ] UI 优化和完善
-- [ ] ~~实时文件监控~~（已取消，避免触发风控）
-
-**交付物**：
-- ✅ Docker 镜像和 Dockerfile
-- ✅ Docker Compose 配置
-- ✅ 部署文档
-- ✅ Webhook API 接口
-
-#### Phase 4: 优化和发布（1-2 天）
-**目标**：性能优化和文档完善
-
-- [ ] 性能测试和优化
-- [ ] 错误处理完善
-- [ ] 完整的中英文文档
-- [ ] 单元测试（核心模块）
-- [ ] CI/CD 配置
-- [ ] 发布 v1.0.0
-
-**交付物**：
-- 生产级应用
-- 完整文档
-- GitHub Release
-
-### 4.2 里程碑
-
-| 里程碑 | 状态 | 目标 |
-|--------|------|------|
-| M1: MVP 完成 | ✅ 已完成 | CLI 工具可用，核心功能完成 |
-| M2: Web UI + API 完成 | ✅ 已完成 | 带管理界面和 API 的完整应用 |
-| M3: Docker + Webhook | ✅ 已完成 | Docker 部署、Webhook 集成 |
-| M4: v1.0.0 发布 | ✅ 当前版本 | 生产可用，功能完整 |
-| M5: 扩展功能 | 🔄 规划中 | 元数据下载、文件检测等 |
+PRD 只保留需求本身，不再把阶段状态和实现进度混写在一起。
 
 ---
 
@@ -548,7 +284,7 @@ openlist-strm/
 
 ---
 
-## 6. 测试计划
+## 6. 测试要求
 
 ### 6.1 单元测试
 - 配置加载和验证
@@ -567,50 +303,16 @@ openlist-strm/
 - 并发任务执行
 - 内存和 CPU 占用
 
+详细测试清单、已完成项和覆盖进度请看 [测试计划](./TESTING.md)。
+
 ---
 
 ## 7. 部署方案
 
-### 7.1 Docker 部署（推荐）
-```bash
-docker run -d \
-  --name openlist-strm \
-  -p 8080:8080 \
-  -v /path/to/config:/config \
-  -v /path/to/strm:/strm \
-  -v /path/to/data:/data \
-  openlist-strm:latest
-```
+具体部署命令、Docker 使用方式、卷挂载、Webhook 集成和故障排查请看：
 
-### 7.2 Docker Compose 部署
-```yaml
-version: '3.8'
-services:
-  openlist-strm:
-    image: openlist-strm:latest
-    container_name: openlist-strm
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./config:/config
-      - ./strm:/strm
-      - ./data:/data
-    environment:
-      - TZ=Asia/Shanghai
-    restart: unless-stopped
-```
-
-### 7.3 二进制部署
-```bash
-# 下载二进制文件
-wget https://github.com/xxx/openlist-strm/releases/download/v1.0.0/openlist-strm-linux-amd64
-
-# 赋予执行权限
-chmod +x openlist-strm-linux-amd64
-
-# 运行
-./openlist-strm-linux-amd64 --config config.yaml
-```
+- [Docker 部署指南](../deployments/README.md)
+- [Webhook 集成指南](../deployments/WEBHOOK.md)
 
 ---
 
@@ -847,20 +549,7 @@ media_paths:
 
 ## 10. 后续规划
 
-### 10.1 v1.1 版本
-- [ ] 支持更多网盘（WebDAV、OneDrive 等）
-- [ ] 智能分类（电影/电视剧自动识别）
-- [ ] 简单刮削功能（可选，基于 TMDB API）
-
-### 10.2 v1.2 版本
-- [ ] 图形化安装向导
-- [ ] 多语言支持（i18n）
-- [ ] 插件系统（可扩展）
-
-### 10.3 v2.0 版本
-- [ ] 分布式部署（多节点）
-- [ ] 消息队列（RabbitMQ/Redis）
-- [ ] 监控告警（Prometheus）
+后续版本方向已迁移到 [路线图](./roadmap.md)，本节不再重复维护。
 
 ---
 
