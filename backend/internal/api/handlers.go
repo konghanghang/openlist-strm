@@ -712,3 +712,55 @@ func (s *Server) handleNotify(c *gin.Context) {
 		"path":    scanPath,
 	})
 }
+
+// CronPreviewRequest cron 预览请求
+type CronPreviewRequest struct {
+	CronExpr string `json:"cron_expr"`
+	Count    int    `json:"count"`
+}
+
+// CronPreviewResponse cron 预览响应
+type CronPreviewResponse struct {
+	NextRunTimes []time.Time `json:"next_run_times"`
+}
+
+// handleCronPreview 计算 cron 表达式接下来 N 次触发时间。
+// 严格使用 6 字段 parser，与 createMapping/updateMapping 校验一致；
+// 不兼容 5 字段表达式。返回时间为本地时区，与 scheduler 实际触发时区对齐。
+func (s *Server) handleCronPreview(c *gin.Context) {
+	var req CronPreviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body: %v", err)})
+		return
+	}
+
+	if req.CronExpr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cron_expr is required"})
+		return
+	}
+
+	count := req.Count
+	if count == 0 {
+		count = 3
+	}
+	if count < 1 || count > 10 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "count must be between 1 and 10"})
+		return
+	}
+
+	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	schedule, err := parser.Parse(req.CronExpr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid cron expression: %v", err)})
+		return
+	}
+
+	times := make([]time.Time, 0, count)
+	next := time.Now()
+	for i := 0; i < count; i++ {
+		next = schedule.Next(next)
+		times = append(times, next)
+	}
+
+	c.JSON(http.StatusOK, CronPreviewResponse{NextRunTimes: times})
+}

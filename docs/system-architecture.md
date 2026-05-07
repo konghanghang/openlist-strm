@@ -147,6 +147,7 @@ OpenList-STRM 当前是一个单仓库、单后端进程 + 单前端构建产物
 - 业务 API 路由挂在 `/api` 下
 - `POST /api/generate` 支持触发全部映射或指定映射
 - `POST /api/webhook` 用于外部事件触发
+- `POST /api/cron/preview` 接收 6 字段 cron 表达式，返回未来 N 次（1~10）触发时间，时区与调度器一致；与 createMapping 校验严格对齐，不接受 5 字段
 
 ### 3.7 Web UI 托管
 

@@ -315,7 +315,10 @@
                 <div class="cron-preview-label">
                   Cron 表达式：<el-text type="success">{{ formData.cron_expr }}</el-text>
                 </div>
-                <div v-if="nextRunTimes.length > 0">
+                <div v-if="previewError" class="cron-preview-error">
+                  <el-text type="danger">无法预览：{{ previewError }}</el-text>
+                </div>
+                <div v-else-if="nextRunTimes.length > 0">
                   <div class="cron-preview-label">最近三次执行时间：</div>
                   <div v-for="(time, index) in nextRunTimes" :key="index" class="cron-preview-item">
                     <el-text type="warning">{{ index + 1 }}. {{ time }}</el-text>
@@ -345,7 +348,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, VideoPlay, Refresh, ArrowDown, Bell, Edit, Delete } from '@element-plus/icons-vue'
 import api from '../api'
@@ -384,6 +387,7 @@ const cronWeeklyTime = ref('02:00')
 const cronMonthDay = ref(1)
 const cronMonthlyTime = ref('02:00')
 const nextRunTimes = ref([])
+const previewError = ref('')
 
 const formRules = {
   name: [
@@ -515,6 +519,7 @@ const handleCronModeChange = () => {
   if (cronMode.value === 'disabled') {
     formData.cron_expr = ''
     nextRunTimes.value = []
+    previewError.value = ''
   } else {
     updateCronExpr()
   }
@@ -548,97 +553,45 @@ const updateCronExpr = () => {
       break
     }
   }
-  calculateNextRunTime()
 }
 
-// 计算最近三次执行时间
-const calculateNextRunTime = () => {
+// formData.cron_expr 是预览的唯一触发源——无论是控件改值、自定义输入还是
+// 编辑既有配置赋初值，都会经此路径
+watch(() => formData.cron_expr, () => {
+  triggerCronPreview()
+})
+
+// 防抖触发后端预览，避免连续切换控件狂请求
+let previewTimer = null
+
+const triggerCronPreview = () => {
+  if (previewTimer) {
+    clearTimeout(previewTimer)
+  }
+  previewTimer = setTimeout(fetchCronPreview, 300)
+}
+
+const fetchCronPreview = async () => {
   if (!formData.cron_expr) {
     nextRunTimes.value = []
+    previewError.value = ''
     return
   }
-
-  const now = new Date()
-  const times = []
-
   try {
-    // 计算三次执行时间
-    for (let i = 0; i < 3; i++) {
-      let next = new Date(i === 0 ? now : times[i - 1].date)
-
-      switch (cronMode.value) {
-        case 'interval_minutes':
-          if (i === 0) {
-            next.setMinutes(now.getMinutes() + cronIntervalMinutes.value)
-          } else {
-            next.setMinutes(next.getMinutes() + cronIntervalMinutes.value)
-          }
-          break
-        case 'hourly':
-          if (i === 0) {
-            next.setHours(now.getHours() + 1)
-            next.setMinutes(cronMinute.value)
-            next.setSeconds(0)
-            if (next <= now) next.setHours(next.getHours() + 1)
-          } else {
-            next.setHours(next.getHours() + 1)
-          }
-          break
-        case 'daily': {
-          const [h, m] = cronDailyTime.value.split(':')
-          if (i === 0) {
-            next.setHours(parseInt(h), parseInt(m), 0)
-            if (next <= now) next.setDate(next.getDate() + 1)
-          } else {
-            next.setDate(next.getDate() + 1)
-          }
-          break
-        }
-        case 'weekly': {
-          const [h, m] = cronWeeklyTime.value.split(':')
-          const targetDay = cronWeekday.value
-          if (i === 0) {
-            const currentDay = now.getDay()
-            let daysUntil = targetDay - currentDay
-            if (daysUntil <= 0) daysUntil += 7
-            next.setDate(now.getDate() + daysUntil)
-            next.setHours(parseInt(h), parseInt(m), 0)
-          } else {
-            next.setDate(next.getDate() + 7)
-          }
-          break
-        }
-        case 'monthly': {
-          const [h, m] = cronMonthlyTime.value.split(':')
-          if (i === 0) {
-            next.setDate(cronMonthDay.value)
-            next.setHours(parseInt(h), parseInt(m), 0)
-            if (next <= now) next.setMonth(next.getMonth() + 1)
-          } else {
-            next.setMonth(next.getMonth() + 1)
-          }
-          break
-        }
-        default:
-          nextRunTimes.value = []
-          return
-      }
-
-      times.push({
-        date: new Date(next),
-        formatted: next.toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
+    const result = await api.previewCron(formData.cron_expr, 3)
+    nextRunTimes.value = (result.next_run_times || []).map(t =>
+      new Date(t).toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
       })
-    }
-
-    nextRunTimes.value = times.map(t => t.formatted)
-  } catch (e) {
+    )
+    previewError.value = ''
+  } catch (err) {
     nextRunTimes.value = []
+    previewError.value = err.message || '无法预览 Cron 表达式'
   }
 }
 
@@ -665,6 +618,7 @@ const resetForm = () => {
   cronMonthDay.value = 1
   cronMonthlyTime.value = '02:00'
   nextRunTimes.value = []
+  previewError.value = ''
 
   if (formRef.value) {
     formRef.value.clearValidate()
@@ -833,6 +787,10 @@ onMounted(() => {
 .cron-preview-item {
   margin-left: 10px;
   line-height: 1.8;
+}
+
+.cron-preview-error {
+  margin-top: 4px;
 }
 
 /* 操作列布局 */

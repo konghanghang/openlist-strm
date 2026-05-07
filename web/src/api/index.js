@@ -85,5 +85,10 @@ export default {
   // Manual notification to media server
   notifyMediaServer(id, data = {}) {
     return api.post(`/notify/${id}`, data)
+  },
+
+  // Preview next run times of a cron expression
+  previewCron(cronExpr, count = 3) {
+    return api.post('/cron/preview', { cron_expr: cronExpr, count })
   }
 }

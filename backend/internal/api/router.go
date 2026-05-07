@@ -75,6 +75,9 @@ func (s *Server) setupRoutes() {
 		// Notification routes
 		api.POST("/notify/:id", s.handleNotify)
 
+		// Cron expression preview
+		api.POST("/cron/preview", s.handleCronPreview)
+
 		// Webhook routes
 		api.POST("/webhook", s.handleWebhook)
 	}
