@@ -43,7 +43,7 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
 - **功能描述**：根据 Alist 文件列表生成对应的 STRM 文件
 - **详细需求**：
   - 保持原始目录结构
-  - 支持常见视频格式：mp4, mkv, avi, mov, flv, wmv, ts, m4v 等
+  - 支持常见媒体格式：视频（mp4, mkv, avi, mov, flv, wmv, ts, m4v 等）、音频（mp3, flac, wav, m4a 等）；扩展名由用户在配置中自定义
   - 文件名处理：支持中文、特殊字符、空格
   - **双模式支持**：
     - **alist_path 模式**：STRM 内容为 Alist 路径（配合 MediaWarp）
@@ -68,7 +68,7 @@ OpenList-STRM 是一个基于 Go 语言开发的 STRM 文件生成工具，用�
   - `name`：配置名称
   - `source`：Alist 源路径
   - `target`：本地 STRM 目标路径
-  - `extensions`：视频扩展名列表（如：mp4, mkv, avi）
+  - `extensions`：媒体扩展名列表（如：mp4, mkv, mp3）
   - `concurrent`：并发数（默认 3，推荐 1-5）
   - `mode`：更新模式（incremental / full）
   - `strm_mode`：STRM 模式（alist_path / http_url）

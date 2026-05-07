@@ -147,22 +147,42 @@
           </el-input>
         </el-form-item>
 
-        <el-form-item label="视频扩展名" prop="extensions">
+        <el-form-item label="媒体扩展名" prop="extensions">
           <el-select
             v-model="formData.extensions"
             multiple
-            placeholder="选择视频文件扩展名"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="选择或输入扩展名（不带点，如 mp4 / mp3 / srt）"
             style="width: 100%"
           >
-            <el-option label="mp4" value="mp4" />
-            <el-option label="mkv" value="mkv" />
-            <el-option label="avi" value="avi" />
-            <el-option label="mov" value="mov" />
-            <el-option label="flv" value="flv" />
-            <el-option label="wmv" value="wmv" />
-            <el-option label="ts" value="ts" />
-            <el-option label="m4v" value="m4v" />
+            <el-option-group label="视频">
+              <el-option label="mp4" value="mp4" />
+              <el-option label="mkv" value="mkv" />
+              <el-option label="avi" value="avi" />
+              <el-option label="mov" value="mov" />
+              <el-option label="flv" value="flv" />
+              <el-option label="wmv" value="wmv" />
+              <el-option label="ts" value="ts" />
+              <el-option label="m4v" value="m4v" />
+            </el-option-group>
+            <el-option-group label="音频">
+              <el-option label="mp3" value="mp3" />
+              <el-option label="flac" value="flac" />
+              <el-option label="wav" value="wav" />
+              <el-option label="m4a" value="m4a" />
+              <el-option label="aac" value="aac" />
+              <el-option label="ogg" value="ogg" />
+            </el-option-group>
+            <el-option-group label="其他">
+              <el-option label="srt" value="srt" />
+              <el-option label="ass" value="ass" />
+            </el-option-group>
           </el-select>
+          <div class="cron-hint">
+            不限于视频；音频、字幕等只要 Alist 能列出、播放器能识别就可以加。列表里没有的格式可直接输入回车自定义。
+          </div>
         </el-form-item>
 
         <el-form-item label="并发数" prop="concurrent">
