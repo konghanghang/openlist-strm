@@ -1,5 +1,9 @@
 <template>
-  <el-dropdown trigger="click" @command="handleThemeChange" :teleported="false">
+  <el-dropdown
+    trigger="click"
+    popper-class="theme-switcher-popper"
+    @command="handleThemeChange"
+  >
     <el-button circle class="theme-button">
       <el-icon><Brush /></el-icon>
     </el-button>
@@ -75,8 +79,11 @@ onMounted(() => {
   color: var(--color-primary, #0EA5E9);
   font-weight: bold;
 }
+</style>
 
-:deep(.el-dropdown-menu__item.is-active) {
+<!-- popper teleport 到 body 后 :deep 失效，active 样式必须走全局 -->
+<style>
+.theme-switcher-popper .el-dropdown-menu__item.is-active {
   background-color: rgba(var(--color-primary-rgb, 14, 165, 233), 0.1);
   color: var(--color-primary, #0EA5E9);
 }

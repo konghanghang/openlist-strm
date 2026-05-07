@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <el-row :gutter="20">
-      <el-col :xs="24" :sm="12" :lg="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card" @click="$router.push('/configs')">
           <div class="stat-content">
             <el-icon class="stat-icon" :style="{ color: 'var(--color-primary)' }"><Setting /></el-icon>
@@ -13,7 +13,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card" @click="$router.push('/tasks')">
           <div class="stat-content">
             <el-icon class="stat-icon" :style="{ color: 'var(--color-cta)' }"><List /></el-icon>
@@ -25,7 +25,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card stat-card--static">
           <div class="stat-content">
             <el-icon class="stat-icon" :style="{ color: 'var(--color-secondary)' }"><InfoFilled /></el-icon>
@@ -37,7 +37,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
+      <el-col :xs="24" :sm="12" :md="6">
         <el-card class="stat-card stat-card--static">
           <div class="stat-content">
             <el-icon class="stat-icon" :style="{ color: 'var(--color-primary)' }"><Odometer /></el-icon>
@@ -61,8 +61,8 @@
             </div>
           </template>
           <el-table :data="recentTasks" style="width: 100%">
-            <el-table-column prop="config_name" label="配置名称" width="150" />
-            <el-table-column prop="mode" label="模式" width="100">
+            <el-table-column prop="config_name" label="配置名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="mode" label="模式" width="90">
               <template #default="scope">
                 <el-tag size="small" :type="scope.row.mode === 'full' ? 'warning' : ''">
                   {{ getModeText(scope.row.mode) }}
@@ -79,7 +79,7 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="文件统计" width="200">
+            <el-table-column label="文件统计" min-width="200">
               <template #default="scope">
                 <div class="file-stats">
                   <span class="stat-item">
@@ -97,12 +97,12 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column prop="started_at" label="开始时间" width="180">
+            <el-table-column prop="started_at" label="开始时间" width="170">
               <template #default="scope">
                 {{ formatTime(scope.row.started_at) }}
               </template>
             </el-table-column>
-            <el-table-column label="耗时" width="100">
+            <el-table-column label="耗时" width="90">
               <template #default="scope">
                 {{ calculateDuration(scope.row.started_at, scope.row.completed_at) }}
               </template>
@@ -266,7 +266,7 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 992px) {
   .el-col {
     margin-bottom: 0;
   }
