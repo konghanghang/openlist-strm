@@ -64,4 +64,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Run via entrypoint script
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["/app/openlist-strm", "-config", "/app/configs/config.yaml"]
+CMD ["/app/openlist-strm"]

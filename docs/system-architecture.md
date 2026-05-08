@@ -25,8 +25,8 @@ OpenList-STRM 当前是一个单仓库、单后端进程 + 单前端构建产物
 
 启动顺序：
 
-1. 解析命令行参数，支持 `-config` 和 `-version`
-2. 加载配置文件
+1. 解析命令行参数，支持可选 `-config` 和 `-version`
+2. 加载配置文件；未传 `-config` 时依次从当前工作目录、其上级目录、可执行文件目录、Docker 约定目录 `/app/configs/` 和 `/etc/openlist-strm/` 查找 `config.yaml` / `config.yml`
 3. 初始化日志
 4. 打开 SQLite 数据库并执行 GORM `AutoMigrate`
 5. 创建 Alist 客户端并执行 `Ping`

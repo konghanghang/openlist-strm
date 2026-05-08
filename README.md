@@ -66,8 +66,19 @@ cd web && npm install && npm run build && cd ..
 make build
 
 # 运行
-./bin/openlist-strm -config config.yaml
+./bin/openlist-strm
 ```
+
+默认会按顺序查找配置文件：
+
+1. 当前工作目录下的 `config.yaml` / `config.yml`
+2. 当前工作目录下的 `configs/`
+3. 当前工作目录的上一级目录及其 `configs/`
+4. 可执行文件所在目录及其上一级目录的同名位置
+5. Docker 约定路径 `/app/configs/`
+6. 系统路径 `/etc/openlist-strm/`
+
+仍然可以通过 `-config /path/to/config.yaml` 显式覆盖。
 
 ## 最小配置
 

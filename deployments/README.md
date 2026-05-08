@@ -37,6 +37,8 @@ docker run -d \
   konghanghang/openlist-strm:master
 ```
 
+容器默认会自动读取 `/app/configs/config.yaml`，不需要额外传 `-config` 参数。
+
 ## 配置说明
 
 ### 环境变量

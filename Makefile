@@ -17,12 +17,12 @@ build:
 
 ## run: Run the application (compiled)
 run: build
-	@./$(BUILD_DIR)/$(BINARY_NAME) --config config.yaml
+	@./$(BUILD_DIR)/$(BINARY_NAME)
 
 ## run-dev: Run from source without building
 run-dev:
 	@echo "Running from source..."
-	@cd $(BACKEND_DIR) && go run cmd/server/main.go -config ../configs/config.example.yaml
+	@cd $(BACKEND_DIR) && go run cmd/server/main.go
 
 ## clean: Clean build artifacts
 clean:

@@ -66,8 +66,19 @@ cd web && npm install && npm run build && cd ..
 make build
 
 # Run
-./bin/openlist-strm -config config.yaml
+./bin/openlist-strm
 ```
+
+The backend now searches for `config.yaml` / `config.yml` in this order when `-config` is not provided:
+
+1. The current working directory
+2. `configs/` under the current working directory
+3. The parent directory of the current working directory and its `configs/`
+4. The executable directory and its parent directory, plus their `configs/`
+5. Docker default path `/app/configs/`
+6. System path `/etc/openlist-strm/`
+
+You can still override this behavior with `-config /path/to/config.yaml`.
 
 ## Minimal Configuration
 

@@ -34,7 +34,7 @@ func main() {
 	}
 
 	// Load configuration
-	cfg, err := config.Load(*configPath)
+	cfg, resolvedConfigPath, err := config.LoadWithSource(*configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
@@ -48,7 +48,7 @@ func main() {
 	defer logger.Close()
 
 	logger.Info.Printf("Starting OpenList-STRM v%s", version)
-	logger.Info.Printf("Config loaded from: %s", *configPath)
+	logger.Info.Printf("Config loaded from: %s", resolvedConfigPath)
 
 	// Initialize database
 	db, err := storage.New(cfg.Database.Path)
