@@ -96,7 +96,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: frontend-dist
-        path: web/dist/
+        path: backend/internal/web/dist/
 
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -145,6 +145,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Download all artifacts
       uses: actions/download-artifact@v4
@@ -162,8 +164,13 @@ jobs:
     - name: Generate changelog
       id: changelog
       run: |
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
         echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> $GITHUB_OUTPUT
+        if [ -n "$PREVIOUS_TAG" ]; then
+          git log --pretty=format:"- %s" "${PREVIOUS_TAG}..HEAD" >> $GITHUB_OUTPUT
+        else
+          git log --pretty=format:"- %s" >> $GITHUB_OUTPUT
+        fi
         echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Create Release

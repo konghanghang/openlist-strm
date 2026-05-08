@@ -47,10 +47,11 @@ Docker Hub 会在首次推送时自动创建仓库，但你也可以提前手动
 ### 5. 验证配置
 
 配置完成后：
-1. 提交代码到主分支，触发 Docker Build 工作流
-2. 或者打 tag 触发 Release 工作流
-3. 在 Actions 页面查看工作流运行状态
-4. 成功后可在 Docker Hub 仓库页面看到推送的镜像
+1. 推送到 `pre_release` 分支，触发预览镜像构建
+2. 或者通过 `workflow_dispatch` 手动触发 Docker Build 工作流
+3. 正式发布时打 `v*` tag，触发 Release 与正式镜像构建
+4. 在 Actions 页面查看工作流运行状态
+5. 成功后可在 Docker Hub 仓库页面看到推送的镜像
 
 ## 镜像拉取命令
 
@@ -63,8 +64,8 @@ docker pull konghanghang/openlist-strm:latest
 # 拉取特定版本
 docker pull konghanghang/openlist-strm:v1.0.0
 
-# 拉取主分支构建
-docker pull konghanghang/openlist-strm:master
+# 拉取预览分支构建
+docker pull konghanghang/openlist-strm:pre_release
 ```
 
 ### 从 GHCR 拉取
@@ -89,7 +90,7 @@ docker pull ghcr.io/konghanghang/openlist-strm:v1.0.0
 
 3. **仓库命名**：
    - 工作流会自动使用 GitHub 仓库名作为 Docker 镜像名
-   - 如需自定义，可修改 `.github/workflows/release.yml` 中的 tags
+   - 如需自定义，可修改 `.github/workflows/docker.yml` 中的 tags
 
 4. **多架构支持**：
    - 镜像支持 `linux/amd64` 和 `linux/arm64`
