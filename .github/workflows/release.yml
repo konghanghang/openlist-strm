@@ -165,13 +165,15 @@ jobs:
       id: changelog
       run: |
         PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
-        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-        if [ -n "$PREVIOUS_TAG" ]; then
-          git log --pretty=format:"- %s" "${PREVIOUS_TAG}..HEAD" >> $GITHUB_OUTPUT
-        else
-          git log --pretty=format:"- %s" >> $GITHUB_OUTPUT
-        fi
-        echo "EOF" >> $GITHUB_OUTPUT
+        {
+          echo "CHANGELOG<<EOF"
+          if [ -n "$PREVIOUS_TAG" ]; then
+            git log --pretty=format:"- %s%n" "${PREVIOUS_TAG}..HEAD"
+          else
+            git log --pretty=format:"- %s%n"
+          fi
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
