@@ -2,7 +2,17 @@
 
 [English](./README_EN.md) | 中文
 
+[![Test](https://github.com/konghanghang/openlist-strm/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/konghanghang/openlist-strm/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/konghanghang/openlist-strm?display_name=tag)](https://github.com/konghanghang/openlist-strm/releases)
+[![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go&logoColor=white)](https://github.com/konghanghang/openlist-strm/blob/master/backend/go.mod)
+[![License](https://img.shields.io/github/license/konghanghang/openlist-strm)](./LICENSE)
+[![GHCR](https://img.shields.io/badge/GHCR-latest-181717?logo=github)](https://github.com/konghanghang/openlist-strm/pkgs/container/openlist-strm)
+
 将 Alist 网盘中的媒体文件批量生成 STRM 文件，供 Emby / Jellyfin / Plex 直接播放。Go 语言实现，单二进制部署，Web UI 管理。
+
+技术栈：`Go 1.23` + `Gin` + `GORM` + `SQLite` + `Vue 3` + `Vite 5` + `Element Plus`
+
+从源码构建要求：`Go 1.23+`、`Node 20+`
 
 ## 特性
 
@@ -34,7 +44,7 @@ vim config.yaml
 ```yaml
 services:
   openlist-strm:
-    image: konghanghang/openlist-strm:master
+    image: ghcr.io/konghanghang/openlist-strm:latest
     container_name: openlist-strm
     restart: unless-stopped
     ports:
@@ -56,7 +66,7 @@ docker-compose up -d
 ### 从源码构建
 
 ```bash
-git clone https://github.com/konghang/openlist-strm.git
+git clone https://github.com/konghanghang/openlist-strm.git
 cd openlist-strm
 
 # 构建前端

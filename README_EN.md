@@ -2,7 +2,17 @@
 
 English | [中文](./README.md)
 
+[![Test](https://github.com/konghanghang/openlist-strm/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/konghanghang/openlist-strm/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/konghanghang/openlist-strm?display_name=tag)](https://github.com/konghanghang/openlist-strm/releases)
+[![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go&logoColor=white)](https://github.com/konghanghang/openlist-strm/blob/master/backend/go.mod)
+[![License](https://img.shields.io/github/license/konghanghang/openlist-strm)](./LICENSE)
+[![GHCR](https://img.shields.io/badge/GHCR-latest-181717?logo=github)](https://github.com/konghanghang/openlist-strm/pkgs/container/openlist-strm)
+
 Batch generate STRM files from media files in Alist cloud storage for direct playback in Emby / Jellyfin / Plex. Built with Go, single binary deployment, Web UI management.
+
+Stack: `Go 1.23` + `Gin` + `GORM` + `SQLite` + `Vue 3` + `Vite 5` + `Element Plus`
+
+Build requirements: `Go 1.23+`, `Node 20+`
 
 ## Features
 
@@ -34,7 +44,7 @@ Create `docker-compose.yml`:
 ```yaml
 services:
   openlist-strm:
-    image: konghanghang/openlist-strm:master
+    image: ghcr.io/konghanghang/openlist-strm:latest
     container_name: openlist-strm
     restart: unless-stopped
     ports:
@@ -56,7 +66,7 @@ Open `http://localhost:8080` to access the Web UI.
 ### Build from Source
 
 ```bash
-git clone https://github.com/konghang/openlist-strm.git
+git clone https://github.com/konghanghang/openlist-strm.git
 cd openlist-strm
 
 # Build frontend
